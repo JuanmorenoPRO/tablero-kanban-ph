@@ -49,14 +49,20 @@ function createCardElement(task) {
   return card;
 }
 
+function getSearchQuery() {
+  return document.getElementById('search-input').value.trim().toLowerCase();
+}
+
 function renderAll() {
   const tasks = loadTasks();
+  const query = getSearchQuery();
 
   COLUMNS.forEach(col => {
     const container = document.querySelector(`.cards[data-col="${col}"]`);
     container.innerHTML = '';
     tasks
       .filter(t => t.col === col)
+      .filter(t => !query || t.text.toLowerCase().includes(query))
       .forEach(t => container.appendChild(createCardElement(t)));
   });
 }
@@ -100,5 +106,7 @@ document.getElementById('add-btn').addEventListener('click', addTask);
 document.getElementById('task-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') addTask();
 });
+
+document.getElementById('search-input').addEventListener('input', renderAll);
 
 renderAll();
