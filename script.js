@@ -60,10 +60,18 @@ function renderAll() {
   COLUMNS.forEach(col => {
     const container = document.querySelector(`.cards[data-col="${col}"]`);
     container.innerHTML = '';
-    tasks
+    const visible = tasks
       .filter(t => t.col === col)
-      .filter(t => !query || t.text.toLowerCase().includes(query))
-      .forEach(t => container.appendChild(createCardElement(t)));
+      .filter(t => !query || t.text.toLowerCase().includes(query));
+
+    if (visible.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'empty-message';
+      empty.textContent = 'No tasks yet';
+      container.appendChild(empty);
+    } else {
+      visible.forEach(t => container.appendChild(createCardElement(t)));
+    }
   });
 }
 
