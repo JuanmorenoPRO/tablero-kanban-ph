@@ -2,14 +2,14 @@ const COLUMNS = ['todo', 'inprogress', 'done'];
 
 function loadTasks() {
   try {
-    return JSON.parse(localStorage.getItem('kanban-tasks')) || [];
+    return JSON.parse(sessionStorage.getItem('kanban-tasks')) || [];
   } catch {
     return [];
   }
 }
 
 function saveTasks(tasks) {
-  localStorage.setItem('kanban-tasks', JSON.stringify(tasks));
+  sessionStorage.setItem('kanban-tasks', JSON.stringify(tasks));
 }
 
 function createCardElement(task) {
