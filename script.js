@@ -12,6 +12,34 @@ function saveTasks(tasks) {
   sessionStorage.setItem('kanban-tasks', JSON.stringify(tasks));
 }
 
+function formatAge(timestamp) {
+  const now = Date.now();
+  const created = Number(timestamp);
+  const diffMs = now - created;
+  const diffMins = Math.floor(diffMs / 60000);
+
+  if (diffMins < 1)  return 'Added just now';
+  if (diffMins < 60) return `Added ${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
+
+  const createdDate = new Date(created);
+  const nowDate = new Date(now);
+  const sameDay =
+    createdDate.getFullYear() === nowDate.getFullYear() &&
+    createdDate.getMonth()    === nowDate.getMonth() &&
+    createdDate.getDate()     === nowDate.getDate();
+
+  if (sameDay) {
+    const h = createdDate.getHours();
+    const m = String(createdDate.getMinutes()).padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hour = h % 12 || 12;
+    return `Added at ${hour}:${m} ${ampm}`;
+  }
+
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `Added ${months[createdDate.getMonth()]} ${createdDate.getDate()}`;
+}
+
 function createCardElement(task) {
   const col = task.col;
 
@@ -19,9 +47,19 @@ function createCardElement(task) {
   card.className = 'card';
   card.dataset.id = task.id;
 
+  const textBlock = document.createElement('div');
+  textBlock.className = 'card-text-block';
+
   const text = document.createElement('span');
   text.className = 'card-text';
   text.textContent = task.text;
+
+  const timestamp = document.createElement('span');
+  timestamp.className = 'card-timestamp';
+  timestamp.textContent = formatAge(task.id);
+
+  textBlock.appendChild(text);
+  textBlock.appendChild(timestamp);
 
   const btnLeft = document.createElement('button');
   btnLeft.className = 'card-btn btn-left' + (col === 'todo' ? ' btn-hidden' : '');
@@ -42,7 +80,7 @@ function createCardElement(task) {
   btnDelete.addEventListener('click', () => deleteTask(task.id));
 
   card.appendChild(btnLeft);
-  card.appendChild(text);
+  card.appendChild(textBlock);
   card.appendChild(btnRight);
   card.appendChild(btnDelete);
 
