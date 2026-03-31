@@ -29,3 +29,8 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[deployment]
+run = ["sh", "-c", "/"]
+deploymentTarget = "static"
+publicDir = "/"
