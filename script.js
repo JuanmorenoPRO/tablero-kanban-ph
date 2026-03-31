@@ -1,27 +1,35 @@
 const COLUMNS = ['todo', 'inprogress', 'done'];
+let tasks = [];
 
-function loadTasks() {
-  try {
-    return JSON.parse(sessionStorage.getItem('kanban-tasks')) || [];
-  } catch {
-    return [];
-  }
+/* ------------------------------------------------------------------
+   API helpers
+------------------------------------------------------------------ */
+async function apiFetch(path, options = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options
+  });
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
 }
 
-function saveTasks(tasks) {
-  sessionStorage.setItem('kanban-tasks', JSON.stringify(tasks));
+async function fetchTasks() {
+  tasks = await apiFetch('/tasks');
+  renderAll();
 }
 
-function formatAge(timestamp) {
+/* ------------------------------------------------------------------
+   Timestamp formatter  (uses created_at from DB)
+------------------------------------------------------------------ */
+function formatAge(createdAt) {
   const now = Date.now();
-  const created = Number(timestamp);
-  const diffMs = now - created;
+  const diffMs = now - createdAt;
   const diffMins = Math.floor(diffMs / 60000);
 
   if (diffMins < 1)  return 'Added just now';
   if (diffMins < 60) return `Added ${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
 
-  const createdDate = new Date(created);
+  const createdDate = new Date(createdAt);
   const nowDate = new Date(now);
   const sameDay =
     createdDate.getFullYear() === nowDate.getFullYear() &&
@@ -40,8 +48,11 @@ function formatAge(timestamp) {
   return `Added ${months[createdDate.getMonth()]} ${createdDate.getDate()}`;
 }
 
+/* ------------------------------------------------------------------
+   Card builder  (task from DB: id, title, status, created_at)
+------------------------------------------------------------------ */
 function createCardElement(task) {
-  const col = task.col;
+  const col = task.status;
 
   const card = document.createElement('div');
   card.className = 'card';
@@ -52,11 +63,11 @@ function createCardElement(task) {
 
   const text = document.createElement('span');
   text.className = 'card-text';
-  text.textContent = task.text;
+  text.textContent = task.title;
 
   const timestamp = document.createElement('span');
   timestamp.className = 'card-timestamp';
-  timestamp.textContent = formatAge(task.id);
+  timestamp.textContent = formatAge(task.created_at);
 
   textBlock.appendChild(text);
   textBlock.appendChild(timestamp);
@@ -87,20 +98,23 @@ function createCardElement(task) {
   return card;
 }
 
+/* ------------------------------------------------------------------
+   Render
+------------------------------------------------------------------ */
 function getSearchQuery() {
   return document.getElementById('search-input').value.trim().toLowerCase();
 }
 
 function renderAll() {
-  const tasks = loadTasks();
   const query = getSearchQuery();
 
   COLUMNS.forEach(col => {
     const container = document.querySelector(`.cards[data-col="${col}"]`);
     container.innerHTML = '';
+
     const visible = tasks
-      .filter(t => t.col === col)
-      .filter(t => !query || t.text.toLowerCase().includes(query));
+      .filter(t => t.status === col)
+      .filter(t => !query || t.title.toLowerCase().includes(query));
 
     if (visible.length === 0) {
       const empty = document.createElement('p');
@@ -113,40 +127,47 @@ function renderAll() {
   });
 }
 
-function addTask() {
+/* ------------------------------------------------------------------
+   Actions
+------------------------------------------------------------------ */
+async function addTask() {
   const input = document.getElementById('task-input');
-  const text = input.value.trim();
-  if (!text) return;
-
-  const tasks = loadTasks();
-  tasks.push({ id: Date.now().toString(), text, col: 'todo' });
-  saveTasks(tasks);
-  renderAll();
+  const title = input.value.trim();
+  if (!title) return;
 
   input.value = '';
   input.focus();
+
+  await apiFetch('/tasks', {
+    method: 'POST',
+    body: JSON.stringify({ title, status: 'todo' })
+  });
+  await fetchTasks();
 }
 
-function moveTask(id, direction) {
-  const tasks = loadTasks();
+async function moveTask(id, direction) {
   const task = tasks.find(t => t.id === id);
   if (!task) return;
 
-  const idx = COLUMNS.indexOf(task.col);
+  const idx = COLUMNS.indexOf(task.status);
   const newIdx = idx + direction;
   if (newIdx < 0 || newIdx >= COLUMNS.length) return;
 
-  task.col = COLUMNS[newIdx];
-  saveTasks(tasks);
-  renderAll();
+  await apiFetch(`/tasks/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ status: COLUMNS[newIdx] })
+  });
+  await fetchTasks();
 }
 
-function deleteTask(id) {
-  const tasks = loadTasks().filter(t => t.id !== id);
-  saveTasks(tasks);
-  renderAll();
+async function deleteTask(id) {
+  await apiFetch(`/tasks/${id}`, { method: 'DELETE' });
+  await fetchTasks();
 }
 
+/* ------------------------------------------------------------------
+   Init
+------------------------------------------------------------------ */
 document.getElementById('add-btn').addEventListener('click', addTask);
 
 document.getElementById('task-input').addEventListener('keydown', e => {
@@ -155,4 +176,4 @@ document.getElementById('task-input').addEventListener('keydown', e => {
 
 document.getElementById('search-input').addEventListener('input', renderAll);
 
-renderAll();
+fetchTasks();
