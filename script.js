@@ -157,6 +157,7 @@ function createCardElement(task) {
   confirmBtn.textContent = '✓';
   confirmBtn.title       = 'Guardar';
   confirmBtn.addEventListener('click', async () => {
+    form.hidden = true;
     await assignTask(task.id, assignInput.value.trim());
   });
 
