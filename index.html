@@ -1,42 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kanban Board</title>
+  <title>Kanban — Contabilidad Residencial</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <header>
-    <h1>Kanban Board</h1>
+    <h1>Kanban Residencial</h1>
+    <p class="subtitulo">Gestión de tareas · Contabilidad de Unidades Residenciales</p>
     <div class="add-task-bar">
-      <input type="text" id="task-input" placeholder="Add a new task..." maxlength="120" />
-      <input type="text" id="assignee-input" placeholder="Assign to..." maxlength="60" />
-      <button id="add-btn">+ Add Task</button>
+      <input type="text" id="task-input" placeholder="Nueva tarea..." maxlength="120" />
+      <input type="text" id="unidad-input" placeholder="Unidad residencial..." maxlength="80" />
+      <button id="add-btn">+ Agregar</button>
     </div>
   </header>
 
   <div class="search-bar">
-    <input type="text" id="search-input" placeholder="Search tasks..." />
+    <input type="text" id="search-input" placeholder="Buscar por tarea, unidad o persona..." />
   </div>
 
   <main class="board">
     <div class="column" id="col-todo">
-      <div class="column-header">To Do</div>
+      <div class="column-header">Pendiente</div>
       <div class="cards" data-col="todo"></div>
     </div>
 
     <div class="column" id="col-inprogress">
-      <div class="column-header">In Progress</div>
+      <div class="column-header">En Progreso</div>
       <div class="cards" data-col="inprogress"></div>
     </div>
 
     <div class="column" id="col-done">
-      <div class="column-header">Done</div>
+      <div class="column-header">Completado</div>
       <div class="cards" data-col="done"></div>
     </div>
   </main>
+
+  <section class="asignaciones-section">
+    <h2>Asignaciones por Persona</h2>
+    <div id="asignaciones-container">
+      <p class="empty-message">Sin asignaciones aún.</p>
+    </div>
+  </section>
 
   <script src="script.js"></script>
 </body>
