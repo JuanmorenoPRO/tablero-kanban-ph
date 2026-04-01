@@ -70,6 +70,14 @@ function createCardElement(task) {
   timestamp.textContent = formatAge(task.created_at);
 
   textBlock.appendChild(text);
+
+  if (task.assignee) {
+    const assignee = document.createElement('span');
+    assignee.className = 'card-assignee';
+    assignee.textContent = '\u{1F464} ' + task.assignee;
+    textBlock.appendChild(assignee);
+  }
+
   textBlock.appendChild(timestamp);
 
   const btnLeft = document.createElement('button');
@@ -132,15 +140,18 @@ function renderAll() {
 ------------------------------------------------------------------ */
 async function addTask() {
   const input = document.getElementById('task-input');
+  const assigneeInput = document.getElementById('assignee-input');
   const title = input.value.trim();
   if (!title) return;
 
+  const assignee = assigneeInput.value.trim();
   input.value = '';
+  assigneeInput.value = '';
   input.focus();
 
   await apiFetch('/tasks', {
     method: 'POST',
-    body: JSON.stringify({ title, status: 'todo' })
+    body: JSON.stringify({ title, status: 'todo', assignee })
   });
   await fetchTasks();
 }
