@@ -633,4 +633,36 @@ document.getElementById('task-input').addEventListener('keydown', e => {
 });
 document.getElementById('search-input').addEventListener('input', renderBoard);
 
+/* --- section filters (client-side, no re-fetch needed) --- */
+function applyFilter(inputId, container, attrName) {
+  const q = document.getElementById(inputId).value.trim().toLowerCase();
+  let anyVisible = false;
+  container.querySelectorAll('.asignacion-bloque').forEach(bloque => {
+    const val = (bloque.dataset[attrName] || '').toLowerCase();
+    const show = !q || val.includes(q);
+    bloque.style.display = show ? '' : 'none';
+    if (show) anyVisible = true;
+  });
+  let noResultMsg = container.querySelector('.filter-empty');
+  if (!anyVisible && q) {
+    if (!noResultMsg) {
+      noResultMsg = document.createElement('p');
+      noResultMsg.className = 'empty-message filter-empty';
+      container.appendChild(noResultMsg);
+    }
+    noResultMsg.textContent = 'Sin resultados para "' + document.getElementById(inputId).value.trim() + '".';
+    noResultMsg.style.display = '';
+  } else if (noResultMsg) {
+    noResultMsg.style.display = 'none';
+  }
+}
+
+document.getElementById('filter-asignaciones').addEventListener('input', () => {
+  applyFilter('filter-asignaciones', document.getElementById('asignaciones-container'), 'assignee');
+});
+
+document.getElementById('filter-unidades').addEventListener('input', () => {
+  applyFilter('filter-unidades', document.getElementById('unidades-container'), 'unidad');
+});
+
 fetchAll();
