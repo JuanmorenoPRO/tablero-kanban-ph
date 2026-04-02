@@ -424,6 +424,56 @@ h1 {
 
 .sin-dato { color: #bbb; font-weight: 600; }
 
+/* === PRIORITY === */
+.card-priority {
+  background: #fff0f0;
+  border-color: #cc0000;
+  box-shadow: 4px 4px 0px #cc0000;
+}
+.card-priority:hover {
+  box-shadow: 6px 6px 0px #cc0000;
+}
+
+.btn-priority {
+  background: #f5f5f5;
+  color: #bbb;
+  border-color: #ccc;
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+.btn-priority:hover {
+  background: #ffe0e0;
+  color: #cc0000;
+  border-color: #cc0000;
+  transform: translate(-1px,-1px);
+  box-shadow: 3px 3px 0 #cc0000;
+}
+.btn-priority-active {
+  background: #cc0000 !important;
+  color: var(--white) !important;
+  border-color: var(--black) !important;
+  box-shadow: 2px 2px 0 var(--black) !important;
+}
+.btn-priority-active:hover {
+  background: #aa0000 !important;
+  box-shadow: 3px 3px 0 var(--black) !important;
+}
+
+.priority-badge {
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  background: #cc0000;
+  color: var(--white);
+  border: 2px solid var(--black);
+  border-radius: 3px;
+  padding: 1px 6px;
+  vertical-align: middle;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
 /* === SUBTASKS === */
 .subtasks-section {
   border-top: 2px solid #eee;

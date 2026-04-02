@@ -59,12 +59,19 @@ function escapeHtml(str) {
 function createCardElement(task) {
   const col  = task.status;
   const card = document.createElement('div');
-  card.className  = 'card';
+  card.className  = 'card' + (task.priority ? ' card-priority' : '');
   card.dataset.id = task.id;
 
   /* ── Fila principal ── */
   const row = document.createElement('div');
   row.className = 'card-row';
+
+  // Priority toggle button
+  const btnPriority = document.createElement('button');
+  btnPriority.className = 'card-btn btn-priority' + (task.priority ? ' btn-priority-active' : '');
+  btnPriority.title     = task.priority ? 'Quitar prioridad' : 'Marcar como prioritaria';
+  btnPriority.textContent = '!';
+  btnPriority.addEventListener('click', () => togglePriority(task.id, !task.priority));
 
   const btnLeft = document.createElement('button');
   btnLeft.className = 'card-btn btn-left' + (col === 'todo' ? ' btn-hidden' : '');
@@ -132,6 +139,7 @@ function createCardElement(task) {
   btnDelete.textContent = '\u00D7';
   btnDelete.addEventListener('click', () => deleteTask(task.id));
 
+  row.appendChild(btnPriority);
   row.appendChild(btnLeft);
   row.appendChild(textBlock);
   row.appendChild(btnRight);
@@ -392,8 +400,11 @@ function renderAsignaciones(data) {
     const tbody = document.createElement('tbody');
     list.forEach(t => {
       const tr = document.createElement('tr');
+      const priorityBadge = t.priority
+        ? ' <span class="priority-badge">⚠️ PRIORIDAD</span>'
+        : '';
       tr.innerHTML = `
-        <td>${escapeHtml(t.title)}</td>
+        <td>${escapeHtml(t.title)}${priorityBadge}</td>
         <td>${t.unidad_residencial ? escapeHtml(t.unidad_residencial) : '<span class="sin-dato">—</span>'}</td>
         <td><span class="estado-badge estado-${t.status}">${COL_LABEL[t.status] || t.status}</span></td>
         <td>${t.hora_inicio ? formatFecha(t.hora_inicio) : '<span class="sin-dato">—</span>'}</td>
@@ -468,6 +479,14 @@ async function assignTask(id, assignee) {
 /* ------------------------------------------------------------------
    Acciones — subtareas
 ------------------------------------------------------------------ */
+async function togglePriority(id, priority) {
+  await apiFetch(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify({ priority: priority ? 1 : 0 }) });
+  const task = tasks.find(t => t.id === id);
+  if (task) task.priority = priority ? 1 : 0;
+  renderBoard();
+  fetchAsignaciones();
+}
+
 async function addSubtask(taskId, title) {
   await apiFetch(`/tasks/${taskId}/subtasks`, {
     method: 'POST',

@@ -16,6 +16,7 @@ db.exec(`
     unidad_residencial TEXT    NOT NULL DEFAULT '',
     hora_inicio        INTEGER DEFAULT NULL,
     hora_fin           INTEGER DEFAULT NULL,
+    priority           INTEGER NOT NULL DEFAULT 0,
     created_at         INTEGER NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000)
   );
   CREATE TABLE IF NOT EXISTS subtasks (
@@ -33,6 +34,7 @@ db.exec(`
   `ALTER TABLE tasks ADD COLUMN unidad_residencial TEXT    NOT NULL DEFAULT ''`,
   `ALTER TABLE tasks ADD COLUMN hora_inicio        INTEGER DEFAULT NULL`,
   `ALTER TABLE tasks ADD COLUMN hora_fin           INTEGER DEFAULT NULL`,
+  `ALTER TABLE tasks ADD COLUMN priority           INTEGER NOT NULL DEFAULT 0`,
 ].forEach(sql => { try { db.exec(sql); } catch (_) {} });
 
 app.use(cors());
@@ -55,12 +57,12 @@ app.get('/tasks', (req, res) => {
 
 /* ── POST /tasks ────────────────────────────────────────────────── */
 app.post('/tasks', (req, res) => {
-  const { title, status = 'todo', assignee = '', unidad_residencial = '' } = req.body;
+  const { title, status = 'todo', assignee = '', unidad_residencial = '', priority = 0 } = req.body;
   if (!title || !title.trim()) return res.status(400).json({ error: 'El título es requerido' });
 
   const result = db
-    .prepare('INSERT INTO tasks (title, status, assignee, unidad_residencial) VALUES (?, ?, ?, ?)')
-    .run(title.trim(), status, assignee.trim(), unidad_residencial.trim());
+    .prepare('INSERT INTO tasks (title, status, assignee, unidad_residencial, priority) VALUES (?, ?, ?, ?, ?)')
+    .run(title.trim(), status, assignee.trim(), unidad_residencial.trim(), priority ? 1 : 0);
 
   const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
   task.subtasks = [];
@@ -77,6 +79,7 @@ app.put('/tasks/:id', (req, res) => {
   const status             = req.body.status             !== undefined ? req.body.status             : ex.status;
   const assignee           = req.body.assignee           !== undefined ? req.body.assignee           : ex.assignee;
   const unidad_residencial = req.body.unidad_residencial !== undefined ? req.body.unidad_residencial : ex.unidad_residencial;
+  const priority           = req.body.priority           !== undefined ? Number(req.body.priority)   : ex.priority;
 
   let hora_inicio = ex.hora_inicio;
   let hora_fin    = ex.hora_fin;
@@ -87,9 +90,9 @@ app.put('/tasks/:id', (req, res) => {
 
   db.prepare(`
     UPDATE tasks
-    SET title=?, status=?, assignee=?, unidad_residencial=?, hora_inicio=?, hora_fin=?
+    SET title=?, status=?, assignee=?, unidad_residencial=?, hora_inicio=?, hora_fin=?, priority=?
     WHERE id=?
-  `).run(title, status, assignee, unidad_residencial, hora_inicio, hora_fin, id);
+  `).run(title, status, assignee, unidad_residencial, hora_inicio, hora_fin, priority, id);
 
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
   updated.subtasks = db.prepare('SELECT * FROM subtasks WHERE task_id = ? ORDER BY created_at ASC').all(id);
