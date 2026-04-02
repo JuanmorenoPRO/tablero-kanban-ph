@@ -686,6 +686,15 @@ h1 {
 .card-priority:hover {
   box-shadow: 7px 7px 0px #990000;
 }
+.cards[data-col="done"] .card-priority {
+  background: #FFAAAA;
+  border-color: #CC3333;
+  box-shadow: 5px 5px 0px #CC3333;
+  color: var(--black);
+}
+.cards[data-col="done"] .card-priority:hover {
+  box-shadow: 7px 7px 0px #CC3333;
+}
 
 .btn-priority {
   background: #f5f5f5;
