@@ -39,6 +39,50 @@ h1 {
   margin-bottom: 6px;
 }
 
+.scroll-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  background: var(--blue);
+  color: var(--white);
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  margin-bottom: 14px;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.scroll-btn:hover  { transform: translate(-2px,-2px); box-shadow: var(--shadow-lg); }
+.scroll-btn:active { transform: translate(2px,2px);   box-shadow: 2px 2px 0 var(--black); }
+
+.scroll-btn-top {
+  background: var(--black);
+  color: var(--white);
+  margin-bottom: 0;
+}
+
+.asignaciones-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  border-bottom: 3px solid var(--black);
+  padding-bottom: 12px;
+}
+
+.asignaciones-top-bar h2 {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
 .subtitulo {
   font-size: 0.9rem;
   font-weight: 700;
