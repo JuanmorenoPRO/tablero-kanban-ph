@@ -677,12 +677,14 @@ h1 {
 
 /* === PRIORITY === */
 .card-priority {
-  background: #fff0f0;
-  border-color: #cc0000;
-  box-shadow: 4px 4px 0px #cc0000;
+  background: #FF3333;
+  border-color: #990000;
+  border-width: 4px;
+  box-shadow: 5px 5px 0px #990000;
+  color: #fff;
 }
 .card-priority:hover {
-  box-shadow: 6px 6px 0px #cc0000;
+  box-shadow: 7px 7px 0px #990000;
 }
 
 .btn-priority {
