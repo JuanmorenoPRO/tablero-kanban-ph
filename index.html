@@ -31,6 +31,7 @@
       <input type="text" id="unidad-input" placeholder="Unidad residencial..." maxlength="80" />
       <button id="add-btn">+ Agregar</button>
     </div>
+    <p id="add-task-error" class="add-task-error" hidden></p>
   </header>
 
   <div class="search-bar">
@@ -96,10 +97,60 @@
       <input type="text" id="informe-input" placeholder="Nombre del informe completado..." maxlength="150" />
       <button id="informe-add-btn">+ Agregar</button>
     </div>
+    <div class="section-filter-bar">
+      <input type="text" id="filter-informes" placeholder="🔍 Buscar informe..." />
+    </div>
     <div id="informes-container">
       <p class="empty-message">Sin informes registrados aún.</p>
     </div>
   </section>
+
+  <!-- Zona de administración -->
+  <div class="admin-zone">
+    <button id="btn-reset-all" class="btn-reset-all">⚠️ Reiniciar todas las tareas</button>
+    <button id="btn-seed" class="btn-seed">📥 Poblar tareas</button>
+  </div>
+
+  <!-- Modal: Poblar tareas -->
+  <div id="modal-seed" class="chart-modal" hidden>
+    <div class="chart-modal-overlay" onclick="closeSeedModal()"></div>
+    <div class="chart-modal-box reset-modal-box">
+      <div class="chart-modal-header">
+        <h3>Poblar tareas</h3>
+        <button class="chart-modal-close" onclick="closeSeedModal()">✕</button>
+      </div>
+      <div class="chart-modal-body reset-modal-body">
+        <p class="reset-modal-desc">Se crearán todas las tareas y subtareas para cada unidad residencial según los archivos de configuración. Ingresa la clave de administrador para continuar.</p>
+        <input type="password" id="seed-admin-key" class="reset-key-input" placeholder="Clave de administrador..." />
+        <p id="seed-error" class="reset-error" hidden>Clave incorrecta. Intenta de nuevo.</p>
+        <p id="seed-success" class="seed-success" hidden></p>
+        <div class="reset-modal-actions">
+          <button id="btn-seed-confirm" class="btn-seed-confirm">Poblar</button>
+          <button class="btn-reset-cancel" onclick="closeSeedModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Reinicio admin -->
+  <div id="modal-reset" class="chart-modal" hidden>
+    <div class="chart-modal-overlay" onclick="closeResetModal()"></div>
+    <div class="chart-modal-box reset-modal-box">
+      <div class="chart-modal-header">
+        <h3>Reinicio de tareas</h3>
+        <button class="chart-modal-close" onclick="closeResetModal()">✕</button>
+      </div>
+      <div class="chart-modal-body reset-modal-body">
+        <p class="reset-modal-desc">Esta acción moverá <strong>todas las tareas</strong> a Pendiente, quitará asignaciones y prioridades. Ingresa la clave de administrador para continuar.</p>
+        <input type="password" id="reset-admin-key" class="reset-key-input" placeholder="Clave de administrador..." />
+        <p id="reset-error" class="reset-error" hidden>Clave incorrecta. Intenta de nuevo.</p>
+        <div class="reset-modal-actions">
+          <button id="btn-reset-confirm" class="btn-reset-confirm">Reiniciar todo</button>
+          <button class="btn-reset-cancel" onclick="closeResetModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal: Resumen general (doughnut) -->
   <div id="modal-status" class="chart-modal" hidden>
@@ -129,6 +180,7 @@
     </div>
   </div>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

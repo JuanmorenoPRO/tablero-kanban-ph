@@ -328,6 +328,21 @@ function createCardElement(task) {
 /* ------------------------------------------------------------------
    Toggle formulario de asignación
 ------------------------------------------------------------------ */
+function showCardWarning(taskId, msg) {
+  const card = document.querySelector(`.card[data-id="${taskId}"]`);
+  if (!card) return;
+  let warn = card.querySelector('.card-warning');
+  if (!warn) {
+    warn = document.createElement('p');
+    warn.className = 'card-warning';
+    card.prepend(warn);
+  }
+  warn.textContent = msg;
+  warn.hidden = false;
+  clearTimeout(warn._t);
+  warn._t = setTimeout(() => { warn.hidden = true; }, 3000);
+}
+
 function toggleAssignForm(card) {
   const form = card.querySelector('.assign-form');
   form.hidden = !form.hidden;
@@ -500,12 +515,37 @@ function renderAsignaciones(data) {
 /* ------------------------------------------------------------------
    Acciones — tareas
 ------------------------------------------------------------------ */
+function showAddError(msg) {
+  const el = document.getElementById('add-task-error');
+  el.textContent = msg;
+  el.hidden = false;
+  clearTimeout(showAddError._t);
+  showAddError._t = setTimeout(() => { el.hidden = true; }, 4000);
+}
+
 async function addTask() {
   const taskInput   = document.getElementById('task-input');
   const unidadInput = document.getElementById('unidad-input');
   const title = taskInput.value.trim();
   if (!title) return;
   const unidad_residencial = unidadInput.value.trim();
+
+  if (!unidad_residencial) {
+    showAddError('⚠️ Debes indicar la unidad residencial antes de agregar la tarea.');
+    unidadInput.focus();
+    return;
+  }
+
+  const duplicate = tasks.find(t =>
+    t.title.toLowerCase() === title.toLowerCase() &&
+    t.unidad_residencial.toLowerCase() === unidad_residencial.toLowerCase()
+  );
+  if (duplicate) {
+    showAddError(`⚠️ Ya existe una tarea "${title}" para la unidad "${unidad_residencial}".`);
+    return;
+  }
+
+  document.getElementById('add-task-error').hidden = true;
   taskInput.value   = '';
   unidadInput.value = '';
   taskInput.focus();
@@ -513,7 +553,6 @@ async function addTask() {
     method: 'POST',
     body: JSON.stringify({ title, status: 'todo', unidad_residencial })
   });
-  await fetchAll();
 }
 
 async function moveTask(id, direction) {
@@ -522,6 +561,20 @@ async function moveTask(id, direction) {
   const newIdx = COLUMNS.indexOf(task.status) + direction;
   if (newIdx < 0 || newIdx >= COLUMNS.length) return;
   const newStatus = COLUMNS[newIdx];
+
+  // Block move to "inprogress" when task has no assignee
+  if (newStatus === 'inprogress' && !task.assignee) {
+    const card = document.querySelector(`.card[data-id="${id}"]`);
+    if (card) {
+      const btn = card.querySelector('.btn-asignar');
+      if (btn) {
+        toggleAssignForm(card);
+        btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+    showCardWarning(id, '⚠️ Asigna la tarea antes de pasarla a En Progreso.');
+    return;
+  }
 
   // Block move to "done" when there are incomplete subtasks
   if (newStatus === 'done' && task.subtasks && task.subtasks.length > 0) {
@@ -543,17 +596,14 @@ async function moveTask(id, direction) {
   }
 
   await apiFetch(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
-  await fetchAll();
 }
 
 async function deleteTask(id) {
   await apiFetch(`/tasks/${id}`, { method: 'DELETE' });
-  await fetchAll();
 }
 
 async function assignTask(id, assignee) {
   await apiFetch(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify({ assignee }) });
-  await fetchAll();
 }
 
 /* ------------------------------------------------------------------
@@ -585,10 +635,6 @@ function scrollToCard(taskId) {
 
 async function togglePriority(id, priority) {
   await apiFetch(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify({ priority: priority ? 1 : 0 }) });
-  const task = tasks.find(t => t.id === id);
-  if (task) task.priority = priority ? 1 : 0;
-  renderBoard();
-  fetchAsignaciones();
 }
 
 async function addSubtask(taskId, title) {
@@ -596,32 +642,17 @@ async function addSubtask(taskId, title) {
     method: 'POST',
     body: JSON.stringify({ title })
   });
-  await fetchAll();
 }
 
-async function toggleSubtask(taskId, subtaskId, completed) {
+async function toggleSubtask(_taskId, subtaskId, completed) {
   await apiFetch(`/subtasks/${subtaskId}`, {
     method: 'PUT',
     body: JSON.stringify({ completed: completed ? 1 : 0 })
   });
-  // Local update — no need to reload from server
-  const task = tasks.find(t => t.id === taskId);
-  if (task && task.subtasks) {
-    const sub = task.subtasks.find(s => s.id === subtaskId);
-    if (sub) sub.completed = completed ? 1 : 0;
-  }
-  renderBoard();
-  fetchAsignaciones();
 }
 
-async function deleteSubtask(taskId, subtaskId) {
+async function deleteSubtask(_taskId, subtaskId) {
   await apiFetch(`/subtasks/${subtaskId}`, { method: 'DELETE' });
-  const task = tasks.find(t => t.id === taskId);
-  if (task && task.subtasks) {
-    task.subtasks = task.subtasks.filter(s => s.id !== subtaskId);
-  }
-  renderBoard();
-  fetchAsignaciones();
 }
 
 /* ------------------------------------------------------------------
@@ -786,6 +817,7 @@ async function fetchInformes() {
 function renderInformes(data) {
   const container = document.getElementById('informes-container');
   container.innerHTML = '';
+  const filterQ = document.getElementById('filter-informes')?.value.trim().toLowerCase() || '';
   if (!data || data.length === 0) {
     container.innerHTML = '<p class="empty-message">Sin informes registrados aún.</p>';
     return;
@@ -800,7 +832,6 @@ function renderInformes(data) {
     checkbox.className = 'informe-checkbox';
     checkbox.addEventListener('change', async () => {
       await apiFetch(`/informes/${inf.id}/toggle`, { method: 'PATCH' });
-      fetchInformes();
     });
 
     const label = document.createElement('span');
@@ -818,13 +849,13 @@ function renderInformes(data) {
     delBtn.title       = 'Eliminar informe';
     delBtn.addEventListener('click', async () => {
       await apiFetch(`/informes/${inf.id}`, { method: 'DELETE' });
-      fetchInformes();
     });
 
     item.appendChild(checkbox);
     item.appendChild(label);
     item.appendChild(meta);
     item.appendChild(delBtn);
+    if (filterQ && !inf.title.toLowerCase().includes(filterQ)) item.style.display = 'none';
     container.appendChild(item);
   });
 }
@@ -835,7 +866,6 @@ async function addInforme() {
   if (!title) return;
   await apiFetch('/informes', { method: 'POST', body: JSON.stringify({ title }) });
   input.value = '';
-  fetchInformes();
 }
 
 document.getElementById('filter-asignaciones').addEventListener('input', () => {
@@ -846,9 +876,141 @@ document.getElementById('filter-unidades').addEventListener('input', () => {
   applyFilter('filter-unidades', document.getElementById('unidades-container'), 'unidad');
 });
 
+document.getElementById('filter-informes').addEventListener('input', () => {
+  const q = document.getElementById('filter-informes').value.trim().toLowerCase();
+  const container = document.getElementById('informes-container');
+  let anyVisible = false;
+  container.querySelectorAll('.informe-item').forEach(item => {
+    const title = item.querySelector('.informe-title')?.textContent.toLowerCase() || '';
+    const show = !q || title.includes(q);
+    item.style.display = show ? '' : 'none';
+    if (show) anyVisible = true;
+  });
+  let noResultMsg = container.querySelector('.filter-empty');
+  if (!anyVisible && q) {
+    if (!noResultMsg) {
+      noResultMsg = document.createElement('p');
+      noResultMsg.className = 'empty-message filter-empty';
+      container.appendChild(noResultMsg);
+    }
+    noResultMsg.textContent = `Sin resultados para "${document.getElementById('filter-informes').value.trim()}".`;
+    noResultMsg.style.display = '';
+  } else if (noResultMsg) {
+    noResultMsg.style.display = 'none';
+  }
+});
+
 document.getElementById('informe-add-btn').addEventListener('click', addInforme);
 document.getElementById('informe-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') addInforme();
+});
+
+/* ------------------------------------------------------------------
+   Reinicio admin
+------------------------------------------------------------------ */
+function closeResetModal() {
+  document.getElementById('modal-reset').hidden = true;
+  document.getElementById('reset-admin-key').value = '';
+  document.getElementById('reset-error').hidden = true;
+}
+
+document.getElementById('btn-reset-all').addEventListener('click', () => {
+  document.getElementById('modal-reset').hidden = false;
+  document.getElementById('reset-admin-key').focus();
+});
+
+document.getElementById('reset-admin-key').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-reset-confirm').click();
+  if (e.key === 'Escape') closeResetModal();
+});
+
+document.getElementById('btn-reset-confirm').addEventListener('click', async () => {
+  const key = document.getElementById('reset-admin-key').value;
+  const errorEl = document.getElementById('reset-error');
+  try {
+    const res = await fetch('/admin/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key })
+    });
+    if (res.status === 401) {
+      errorEl.hidden = false;
+      document.getElementById('reset-admin-key').select();
+      return;
+    }
+    if (!res.ok) throw new Error('Server error');
+    closeResetModal();
+  } catch (e) {
+    errorEl.textContent = 'Error al conectar con el servidor.';
+    errorEl.hidden = false;
+  }
+});
+
+/* ------------------------------------------------------------------
+   Poblar tareas admin
+------------------------------------------------------------------ */
+function closeSeedModal() {
+  document.getElementById('modal-seed').hidden = true;
+  document.getElementById('seed-admin-key').value = '';
+  document.getElementById('seed-error').hidden = true;
+  document.getElementById('seed-success').hidden = true;
+  document.getElementById('btn-seed-confirm').disabled = false;
+  document.getElementById('btn-seed-confirm').textContent = 'Poblar';
+}
+
+document.getElementById('btn-seed').addEventListener('click', () => {
+  document.getElementById('modal-seed').hidden = false;
+  document.getElementById('seed-admin-key').focus();
+});
+
+document.getElementById('seed-admin-key').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-seed-confirm').click();
+  if (e.key === 'Escape') closeSeedModal();
+});
+
+document.getElementById('btn-seed-confirm').addEventListener('click', async () => {
+  const key     = document.getElementById('seed-admin-key').value;
+  const errorEl   = document.getElementById('seed-error');
+  const successEl = document.getElementById('seed-success');
+  const confirmBtn = document.getElementById('btn-seed-confirm');
+
+  errorEl.hidden   = true;
+  successEl.hidden = true;
+  confirmBtn.disabled    = true;
+  confirmBtn.textContent = 'Poblando...';
+
+  try {
+    const res = await fetch('/admin/seed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key })
+    });
+    const data = await res.json();
+    if (res.status === 401) {
+      errorEl.textContent = 'Clave incorrecta. Intenta de nuevo.';
+      errorEl.hidden = false;
+      document.getElementById('seed-admin-key').select();
+      confirmBtn.disabled    = false;
+      confirmBtn.textContent = 'Poblar';
+      return;
+    }
+    if (!res.ok) throw new Error('Server error');
+    successEl.textContent = `✓ ${data.unidades} unidades · ${data.tareas} tareas · ${data.subtareas} subtareas creadas.`;
+    successEl.hidden = false;
+    confirmBtn.textContent = '✓ Listo';
+    setTimeout(closeSeedModal, 2500);
+  } catch (e) {
+    errorEl.textContent = 'Error al conectar con el servidor.';
+    errorEl.hidden = false;
+    confirmBtn.disabled    = false;
+    confirmBtn.textContent = 'Poblar';
+  }
+});
+
+const socket = io();
+socket.on('refresh', () => {
+  fetchAll();
+  fetchInformes();
 });
 
 fetchAll();

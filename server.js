@@ -1,13 +1,20 @@
+const http    = require('http');
 const express = require('express');
+const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const pg      = require('pg');
 const cors    = require('cors');
 const path    = require('path');
+const XLSX    = require('xlsx');
 
 /* ── PostgreSQL connection ──────────────────────────────────────── */
 pg.types.setTypeParser(20, val => parseInt(val, 10)); // BIGINT → JS Number
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const isLocal = (process.env.DATABASE_URL || '').includes('localhost');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: isLocal ? false : { rejectUnauthorized: false }
+});
 
 const queryAll = async (text, params) => {
   const { rows } = await pool.query(text, params);
@@ -49,7 +56,10 @@ async function initSchema() {
   console.log('Schema ready');
 }
 
-const app = express();
+const app        = express();
+const httpServer = http.createServer(app);
+const io         = new Server(httpServer);
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
@@ -81,6 +91,7 @@ app.post('/tasks', async (req, res) => {
     );
     task.subtasks = [];
     res.status(201).json(task);
+    io.emit('refresh');
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -116,6 +127,7 @@ app.put('/tasks/:id', async (req, res) => {
       'SELECT * FROM subtasks WHERE task_id = $1 ORDER BY created_at ASC', [id]
     );
     res.json(updated);
+    io.emit('refresh');
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -128,6 +140,7 @@ app.delete('/tasks/:id', async (req, res) => {
     await pool.query('DELETE FROM subtasks WHERE task_id = $1', [id]);
     await pool.query('DELETE FROM tasks WHERE id = $1', [id]);
     res.json({ success: true });
+    io.emit('refresh');
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -144,6 +157,7 @@ app.post('/tasks/:id/subtasks', async (req, res) => {
       [taskId, title.trim()]
     );
     res.status(201).json(subtask);
+    io.emit('refresh');
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -160,6 +174,7 @@ app.put('/subtasks/:id', async (req, res) => {
       [completed, title, id]
     );
     res.json(updated);
+    io.emit('refresh');
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -171,6 +186,7 @@ app.delete('/subtasks/:id', async (req, res) => {
     if (!sub) return res.status(404).json({ error: 'Subtarea no encontrada' });
     await pool.query('DELETE FROM subtasks WHERE id = $1', [id]);
     res.json({ success: true });
+    io.emit('refresh');
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -231,6 +247,7 @@ app.post('/informes', async (req, res) => {
       [title.trim()]
     );
     res.json(info);
+    io.emit('refresh');
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -244,6 +261,7 @@ app.patch('/informes/:id/toggle', async (req, res) => {
       [row.completed ? 0 : 1, req.params.id]
     );
     res.json({ success: true });
+    io.emit('refresh');
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -252,11 +270,84 @@ app.delete('/informes/:id', async (req, res) => {
   try {
     await pool.query('DELETE FROM informes WHERE id = $1', [req.params.id]);
     res.json({ success: true });
+    io.emit('refresh');
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
+/* ── POST /admin/seed ───────────────────────────────────────────── */
+app.post('/admin/seed', async (req, res) => {
+  try {
+    const { key } = req.body;
+    if (key !== ADMIN_KEY) return res.status(401).json({ error: 'Clave incorrecta' });
+
+    const wbU  = XLSX.readFile(path.join(__dirname, 'unidades', 'LISTA UNIDADES PH..xlsx'));
+    const rowsU = XLSX.utils.sheet_to_json(wbU.Sheets[wbU.SheetNames[0]], { header: 1 });
+    const unidades = rowsU.slice(1).map(r => (r[2] || '').trim()).filter(Boolean);
+
+    const wbT  = XLSX.readFile(path.join(__dirname, 'unidades', 'TAREAS.xlsx'));
+    const rowsT = XLSX.utils.sheet_to_json(wbT.Sheets[wbT.SheetNames[0]], { header: 1 });
+    const tareas = [];
+    let currentTask = null;
+    for (const row of rowsT) {
+      const taskName = (row[0] || '').trim();
+      const subName  = (row[1] || '').trim();
+      if (taskName) { currentTask = { title: taskName, subtasks: [] }; tareas.push(currentTask); }
+      if (subName && currentTask) currentTask.subtasks.push(subName);
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      let totalTareas = 0, totalSubs = 0;
+      for (const unidad of unidades) {
+        for (const tarea of tareas) {
+          const { rows } = await client.query(
+            `INSERT INTO tasks (title, status, assignee, unidad_residencial, priority)
+             VALUES ($1, 'todo', '', $2, 0) RETURNING id`,
+            [tarea.title, unidad]
+          );
+          totalTareas++;
+          for (const sub of tarea.subtasks) {
+            await client.query(
+              `INSERT INTO subtasks (task_id, title, completed) VALUES ($1, $2, 0)`,
+              [rows[0].id, sub]
+            );
+            totalSubs++;
+          }
+        }
+      }
+      await client.query('COMMIT');
+      res.json({ success: true, unidades: unidades.length, tareas: totalTareas, subtareas: totalSubs });
+      io.emit('refresh');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
+/* ── POST /admin/reset ──────────────────────────────────────────── */
+const ADMIN_KEY = process.env.ADMIN_KEY || "ph-admin-8475*/-";
+
+app.post('/admin/reset', async (req, res) => {
+  try {
+    const { key } = req.body;
+    if (key !== ADMIN_KEY) return res.status(401).json({ error: 'Clave incorrecta' });
+    await pool.query(`
+      UPDATE tasks
+      SET status = 'todo', assignee = '', priority = 0,
+          hora_inicio = NULL, hora_fin = NULL
+    `);
+    await pool.query(`UPDATE subtasks SET completed = 0`);
+    res.json({ success: true });
+    io.emit('refresh');
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
 /* ── Start ──────────────────────────────────────────────────────── */
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 initSchema()
-  .then(() => app.listen(PORT, () => console.log(`Servidor Kanban corriendo en puerto ${PORT}`)))
+  .then(() => httpServer.listen(PORT, () => console.log(`Servidor Kanban corriendo en puerto ${PORT}`)))
   .catch(err => { console.error('Error initializing schema:', err); process.exit(1); });
