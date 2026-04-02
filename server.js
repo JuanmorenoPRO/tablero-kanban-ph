@@ -145,6 +145,25 @@ app.delete('/subtasks/:id', (req, res) => {
   res.json({ success: true });
 });
 
+/* ── GET /unidades — tasks grouped by unidad_residencial ───────── */
+app.get('/unidades', (req, res) => {
+  const rows    = db.prepare(`SELECT * FROM tasks WHERE unidad_residencial != '' ORDER BY unidad_residencial ASC, created_at ASC`).all();
+  const allSubs = db.prepare('SELECT * FROM subtasks ORDER BY created_at ASC').all();
+  const subMap  = {};
+  for (const s of allSubs) {
+    if (!subMap[s.task_id]) subMap[s.task_id] = [];
+    subMap[s.task_id].push(s);
+  }
+  rows.forEach(t => { t.subtasks = subMap[t.id] || []; });
+
+  const grouped = {};
+  for (const t of rows) {
+    if (!grouped[t.unidad_residencial]) grouped[t.unidad_residencial] = [];
+    grouped[t.unidad_residencial].push(t);
+  }
+  res.json(Object.entries(grouped).map(([unidad, tasks]) => ({ unidad, tasks })));
+});
+
 /* ── GET /asignaciones ──────────────────────────────────────────── */
 app.get('/asignaciones', (req, res) => {
   const rows   = db.prepare(`SELECT * FROM tasks WHERE assignee != '' ORDER BY assignee ASC, created_at ASC`).all();

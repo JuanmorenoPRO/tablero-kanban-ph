@@ -11,9 +11,14 @@
   <header>
     <h1>Kanban Residencial</h1>
     <p class="subtitulo">Gestión de tareas · Contabilidad de Unidades Residenciales</p>
-    <button class="scroll-btn" onclick="document.querySelector('.asignaciones-section').scrollIntoView({behavior:'smooth'})">
-      ↓ Ver asignaciones por persona
-    </button>
+    <div class="nav-btns">
+      <button class="scroll-btn" onclick="document.querySelector('.asignaciones-section').scrollIntoView({behavior:'smooth'})">
+        ↓ Ver asignaciones por persona
+      </button>
+      <button class="scroll-btn" onclick="document.querySelector('.unidades-section').scrollIntoView({behavior:'smooth'})">
+        ↓ Ver por unidad residencial
+      </button>
+    </div>
     <div class="add-task-bar">
       <input type="text" id="task-input" placeholder="Nueva tarea..." maxlength="120" />
       <input type="text" id="unidad-input" placeholder="Unidad residencial..." maxlength="80" />
@@ -51,6 +56,18 @@
     </div>
     <div id="asignaciones-container">
       <p class="empty-message">Sin asignaciones aún.</p>
+    </div>
+  </section>
+
+  <section class="unidades-section">
+    <div class="asignaciones-top-bar">
+      <h2>Resumen por Unidad Residencial</h2>
+      <button class="scroll-btn scroll-btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+        ↑ Volver al tablero
+      </button>
+    </div>
+    <div id="unidades-container">
+      <p class="empty-message">Sin unidades residenciales registradas aún.</p>
     </div>
   </section>
 

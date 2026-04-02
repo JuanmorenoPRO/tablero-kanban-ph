@@ -15,6 +15,7 @@ async function fetchAll() {
   tasks = await apiFetch('/tasks');
   renderBoard();
   fetchAsignaciones();
+  fetchUnidades();
 }
 
 /* ------------------------------------------------------------------
@@ -366,6 +367,77 @@ function renderBoard() {
 /* ------------------------------------------------------------------
    Panel de asignaciones
 ------------------------------------------------------------------ */
+async function fetchUnidades() {
+  try {
+    renderUnidades(await apiFetch('/unidades'));
+  } catch (e) { console.error('Error cargando unidades', e); }
+}
+
+function renderUnidades(data) {
+  const container = document.getElementById('unidades-container');
+  container.innerHTML = '';
+
+  if (!data || data.length === 0) {
+    container.innerHTML = '<p class="empty-message">Sin unidades residenciales registradas aún.</p>';
+    return;
+  }
+
+  data.forEach(({ unidad, tasks: list }) => {
+    const bloque = document.createElement('div');
+    bloque.className = 'asignacion-bloque';
+    bloque.dataset.unidad = unidad;
+
+    const header = document.createElement('div');
+    header.className = 'asignacion-header unidad-header';
+    header.innerHTML =
+      `<span class="asignacion-nombre">🏢 ${escapeHtml(unidad)}</span>` +
+      `<span class="asignacion-count">${list.length} tarea${list.length !== 1 ? 's' : ''}</span>`;
+    bloque.appendChild(header);
+
+    const tabla = document.createElement('table');
+    tabla.className = 'asignacion-tabla';
+    tabla.innerHTML = `
+      <thead><tr>
+        <th>Tarea</th>
+        <th>Persona Asignada</th>
+        <th>Estado</th>
+        <th>Subtareas</th>
+      </tr></thead>`;
+
+    const tbody = document.createElement('tbody');
+    list.forEach(t => {
+      const tr = document.createElement('tr');
+      const subtasks  = t.subtasks || [];
+      const completed = subtasks.filter(s => s.completed).length;
+      const pct       = subtasks.length > 0 ? Math.round((completed / subtasks.length) * 100) : 0;
+      const priorityBadge = t.priority ? ' <span class="priority-badge">⚠️ PRIORIDAD</span>' : '';
+
+      const subtasksCell = subtasks.length === 0
+        ? '<span class="sin-dato">—</span>'
+        : `<div class="unidad-subtask-cell">
+             <span class="unidad-subtask-count">${completed}/${subtasks.length}</span>
+             <div class="subtasks-progress-bar unidad-progress-bar">
+               <div class="subtasks-progress-fill" style="width:${pct}%"></div>
+             </div>
+           </div>`;
+
+      tr.innerHTML = `
+        <td>${escapeHtml(t.title)}${priorityBadge}</td>
+        <td>${t.assignee ? `<span class="unidad-assignee">${escapeHtml(t.assignee)}</span>` : '<span class="sin-dato">—</span>'}</td>
+        <td><span class="estado-badge estado-${t.status}">${COL_LABEL[t.status] || t.status}</span></td>
+        <td>${subtasksCell}</td>`;
+
+      tr.title = 'Ir a la tarea en el tablero';
+      tr.addEventListener('click', () => scrollToCard(t.id));
+      tbody.appendChild(tr);
+    });
+
+    tabla.appendChild(tbody);
+    bloque.appendChild(tabla);
+    container.appendChild(bloque);
+  });
+}
+
 async function fetchAsignaciones() {
   try {
     renderAsignaciones(await apiFetch('/asignaciones'));

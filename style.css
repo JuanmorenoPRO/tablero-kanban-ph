@@ -39,6 +39,13 @@ h1 {
   margin-bottom: 6px;
 }
 
+.nav-btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
 .scroll-btn {
   display: inline-flex;
   align-items: center;
@@ -477,6 +484,50 @@ h1 {
 .estado-done       { background: var(--green);  }
 
 .sin-dato { color: #bbb; font-weight: 600; }
+
+/* === UNIDADES SECTION === */
+.unidades-section {
+  max-width: 1200px;
+  margin: 40px auto 0;
+  border-top: 4px solid var(--black);
+  padding-top: 28px;
+}
+
+.unidad-header {
+  background: var(--blue) !important;
+  color: var(--white);
+}
+.unidad-header .asignacion-nombre {
+  color: var(--white);
+}
+
+.unidad-assignee {
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: var(--yellow);
+  color: var(--black);
+  border: 2px solid var(--black);
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+
+.unidad-subtask-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.unidad-subtask-count {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--black);
+}
+
+.unidad-progress-bar {
+  height: 6px !important;
+  min-width: 60px;
+}
 
 /* === ASSIGNEE BLOCK HIGHLIGHT (click from card badge) === */
 .asignacion-bloque.asignacion-highlight {
