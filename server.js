@@ -298,36 +298,39 @@ app.post('/admin/seed', async (req, res) => {
       if (subName && currentTask) currentTask.subtasks.push(subName);
     }
 
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      let totalTareas = 0, totalSubs = 0;
+    // Respond immediately so Railway doesn't timeout, then insert in background
+    res.json({ success: true, unidades: unidades.length, tareas: unidades.length * tareas.length, subtareas: unidades.length * tareas.reduce((a, t) => a + t.subtasks.length, 0) });
+
+    // Insert per-unidad in separate transactions to avoid long-running query
+    (async () => {
       for (const unidad of unidades) {
-        for (const tarea of tareas) {
-          const { rows } = await client.query(
-            `INSERT INTO tasks (title, status, assignee, unidad_residencial, priority)
-             VALUES ($1, 'todo', '', $2, 0) RETURNING id`,
-            [tarea.title, unidad]
-          );
-          totalTareas++;
-          for (const sub of tarea.subtasks) {
-            await client.query(
-              `INSERT INTO subtasks (task_id, title, completed) VALUES ($1, $2, 0)`,
-              [rows[0].id, sub]
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          for (const tarea of tareas) {
+            const { rows } = await client.query(
+              `INSERT INTO tasks (title, status, assignee, unidad_residencial, priority)
+               VALUES ($1, 'todo', '', $2, 0) RETURNING id`,
+              [tarea.title, unidad]
             );
-            totalSubs++;
+            for (const sub of tarea.subtasks) {
+              await client.query(
+                `INSERT INTO subtasks (task_id, title, completed) VALUES ($1, $2, 0)`,
+                [rows[0].id, sub]
+              );
+            }
           }
+          await client.query('COMMIT');
+        } catch (e) {
+          await client.query('ROLLBACK');
+          console.error('Seed error for unidad', unidad, e.message);
+        } finally {
+          client.release();
         }
       }
-      await client.query('COMMIT');
-      res.json({ success: true, unidades: unidades.length, tareas: totalTareas, subtareas: totalSubs });
       io.emit('refresh');
-    } catch (e) {
-      await client.query('ROLLBACK');
-      throw e;
-    } finally {
-      client.release();
-    }
+      console.log('Seed completed');
+    })();
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
