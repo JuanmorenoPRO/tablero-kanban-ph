@@ -1,12 +1,13 @@
-# Kanban Board Task Manager
+# Kanban Residencial
 
-A shared Kanban board backed by a Node.js/Express REST API and SQLite database.
+Shared Kanban board for "Contabilidad de Unidades Residenciales PH Financieramente al dia".
+Built with Node.js/Express REST API, PostgreSQL database, and a neobrutalist Spanish UI.
 
 ## Architecture
 
-- **Frontend**: Vanilla JS + HTML + CSS (neobrutalist design)
+- **Frontend**: Vanilla JS + HTML + CSS (neobrutalist design, full Spanish UI)
 - **Backend**: Node.js + Express (`server.js`)
-- **Database**: SQLite via `better-sqlite3` (`kanban.db`)
+- **Database**: PostgreSQL via `pg` (node-postgres) — Replit built-in DB
 
 ## Files
 
@@ -15,41 +16,79 @@ A shared Kanban board backed by a Node.js/Express REST API and SQLite database.
 | `server.js` | Express server — REST API + serves static files |
 | `index.html` | HTML structure |
 | `style.css` | Neobrutalism CSS |
-| `script.js` | Frontend logic (fetch-based, no localStorage/sessionStorage) |
-| `kanban.db` | SQLite database (auto-created on first run) |
+| `script.js` | Frontend logic (fetch-based, no localStorage) |
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string (set automatically by Replit) |
 
 ## Database Schema
 
 ```sql
 CREATE TABLE tasks (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  title      TEXT    NOT NULL,
-  status     TEXT    NOT NULL DEFAULT 'todo',  -- 'todo' | 'inprogress' | 'done'
-  created_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000)
-)
+  id                 SERIAL PRIMARY KEY,
+  title              TEXT NOT NULL,
+  status             TEXT NOT NULL DEFAULT 'todo',   -- 'todo' | 'inprogress' | 'done'
+  assignee           TEXT NOT NULL DEFAULT '',
+  unidad_residencial TEXT NOT NULL DEFAULT '',
+  hora_inicio        BIGINT DEFAULT NULL,
+  hora_fin           BIGINT DEFAULT NULL,
+  priority           INTEGER NOT NULL DEFAULT 0,
+  created_at         BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+);
+
+CREATE TABLE subtasks (
+  id         SERIAL PRIMARY KEY,
+  task_id    INTEGER NOT NULL,
+  title      TEXT NOT NULL,
+  completed  INTEGER NOT NULL DEFAULT 0,
+  created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+);
+
+CREATE TABLE informes (
+  id         SERIAL PRIMARY KEY,
+  title      TEXT NOT NULL,
+  completed  INTEGER NOT NULL DEFAULT 1,
+  created_at BIGINT NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+);
 ```
 
 ## REST API
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/tasks` | Return all tasks |
-| POST | `/tasks` | Create task — body: `{ title, status? }` |
-| PUT | `/tasks/:id` | Update task — body: `{ title?, status? }` |
-| DELETE | `/tasks/:id` | Delete task |
+| GET | `/tasks` | All tasks with their subtasks |
+| POST | `/tasks` | Create task |
+| PUT | `/tasks/:id` | Update task (status, assignee, priority, etc.) |
+| DELETE | `/tasks/:id` | Delete task + its subtasks |
+| POST | `/tasks/:id/subtasks` | Add subtask |
+| PUT | `/subtasks/:id` | Update subtask |
+| DELETE | `/subtasks/:id` | Delete subtask |
+| GET | `/asignaciones` | Tasks grouped by assignee |
+| GET | `/unidades` | Tasks grouped by unidad residencial |
+| GET | `/informes` | All informes |
+| POST | `/informes` | Create informe |
+| PATCH | `/informes/:id/toggle` | Toggle informe completed |
+| DELETE | `/informes/:id` | Delete informe |
+
+## Features
+
+- Shared board (PostgreSQL — all users see the same data)
+- Three columns: Pendiente / En Progreso / Completado
+- Subtasks with progress bar; blocks moving to Completado until all done
+- Priority flag (bright red card, visible badge in asignaciones table)
+- Assignee per card with scroll-to-person link
+- Hora de inicio / hora de fin auto-tracked per task
+- Asignaciones section: tasks grouped by person with filter
+- Unidades section: tasks grouped by residential unit with filter
+- Informes completados: checklist registry
+- Charts: doughnut (overall status) + stacked bar (team workload by person)
+- Real-time text search (client-side)
 
 ## Running
 
 Workflow: `Start application` → `node server.js` (port 5000)
 
-The Express server serves both the static frontend files and the `/tasks` API from the same origin, so no cross-origin issues.
-
-## Features
-
-- Shared board: all users see the same tasks (SQLite persistence)
-- Three columns: To Do / In Progress / Done
-- Move cards left/right with arrow buttons
-- Delete cards
-- Real-time text search (client-side filter)
-- "No tasks yet" empty state per column
-- "Added X minutes ago" / "Added at H:MM AM/PM" / "Added Mon DD" timestamps
+Schema is created automatically on startup via `initSchema()`.
