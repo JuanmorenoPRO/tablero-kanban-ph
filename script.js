@@ -62,7 +62,7 @@ function createCardElement(task) {
   card.className  = 'card';
   card.dataset.id = task.id;
 
-  /* ---- Fila principal ---- */
+  /* ── Fila principal ── */
   const row = document.createElement('div');
   row.className = 'card-row';
 
@@ -72,7 +72,6 @@ function createCardElement(task) {
   btnLeft.innerHTML = '&#8592;';
   btnLeft.addEventListener('click', () => moveTask(task.id, -1));
 
-  /* bloque de texto */
   const textBlock = document.createElement('div');
   textBlock.className = 'card-text-block';
 
@@ -88,7 +87,6 @@ function createCardElement(task) {
     textBlock.appendChild(unidad);
   }
 
-  /* fila del asignado + botón */
   const assigneeRow = document.createElement('div');
   assigneeRow.className = 'card-assignee-row';
   if (task.assignee) {
@@ -140,10 +138,10 @@ function createCardElement(task) {
   row.appendChild(btnDelete);
   card.appendChild(row);
 
-  /* ---- Formulario de asignación (oculto) ---- */
-  const form = document.createElement('div');
-  form.className = 'assign-form';
-  form.hidden    = true;
+  /* ── Formulario de asignación (oculto) ── */
+  const assignForm = document.createElement('div');
+  assignForm.className = 'assign-form';
+  assignForm.hidden    = true;
 
   const assignInput = document.createElement('input');
   assignInput.type        = 'text';
@@ -152,34 +150,155 @@ function createCardElement(task) {
   assignInput.maxLength   = 60;
   if (task.assignee) assignInput.value = task.assignee;
 
-  const confirmBtn = document.createElement('button');
-  confirmBtn.className   = 'assign-confirm';
-  confirmBtn.textContent = '✓';
-  confirmBtn.title       = 'Guardar';
-  confirmBtn.addEventListener('click', async () => {
-    form.hidden = true;
+  const assignConfirm = document.createElement('button');
+  assignConfirm.className   = 'assign-confirm';
+  assignConfirm.textContent = '✓';
+  assignConfirm.title       = 'Guardar';
+  assignConfirm.addEventListener('click', async () => {
+    assignForm.hidden = true;
     await assignTask(task.id, assignInput.value.trim());
   });
 
-  const cancelBtn = document.createElement('button');
-  cancelBtn.className   = 'assign-cancel';
-  cancelBtn.textContent = '✕';
-  cancelBtn.title       = 'Cancelar';
-  cancelBtn.addEventListener('click', () => { form.hidden = true; });
+  const assignCancel = document.createElement('button');
+  assignCancel.className   = 'assign-cancel';
+  assignCancel.textContent = '✕';
+  assignCancel.addEventListener('click', () => { assignForm.hidden = true; });
 
   assignInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter')  confirmBtn.click();
-    if (e.key === 'Escape') cancelBtn.click();
+    if (e.key === 'Enter')  assignConfirm.click();
+    if (e.key === 'Escape') assignCancel.click();
   });
 
-  form.appendChild(assignInput);
-  form.appendChild(confirmBtn);
-  form.appendChild(cancelBtn);
-  card.appendChild(form);
+  assignForm.appendChild(assignInput);
+  assignForm.appendChild(assignConfirm);
+  assignForm.appendChild(assignCancel);
+  card.appendChild(assignForm);
 
+  /* ── Sección de subtareas ── */
+  const subtasks = task.subtasks || [];
+  const completedCount = subtasks.filter(s => s.completed).length;
+
+  const subtasksSection = document.createElement('div');
+  subtasksSection.className = 'subtasks-section';
+
+  // Header
+  const subtasksHeader = document.createElement('div');
+  subtasksHeader.className = 'subtasks-header';
+
+  const subtasksTitle = document.createElement('span');
+  subtasksTitle.className = 'subtasks-title';
+  if (subtasks.length > 0) {
+    subtasksTitle.textContent = `Subtareas ${completedCount}/${subtasks.length}`;
+  } else {
+    subtasksTitle.textContent = 'Subtareas';
+  }
+  subtasksHeader.appendChild(subtasksTitle);
+
+  const btnAddSub = document.createElement('button');
+  btnAddSub.className   = 'btn-add-subtask';
+  btnAddSub.textContent = '+ Subtarea';
+  btnAddSub.addEventListener('click', () => {
+    const f = subtasksSection.querySelector('.subtask-form');
+    f.hidden = !f.hidden;
+    if (!f.hidden) f.querySelector('.subtask-input').focus();
+  });
+  subtasksHeader.appendChild(btnAddSub);
+  subtasksSection.appendChild(subtasksHeader);
+
+  // Progress bar
+  if (subtasks.length > 0) {
+    const bar = document.createElement('div');
+    bar.className = 'subtasks-progress-bar';
+    const fill = document.createElement('div');
+    fill.className = 'subtasks-progress-fill';
+    fill.style.width = Math.round((completedCount / subtasks.length) * 100) + '%';
+    bar.appendChild(fill);
+    subtasksSection.appendChild(bar);
+  }
+
+  // Blocked warning (hidden by default)
+  const blockedMsg = document.createElement('p');
+  blockedMsg.className = 'subtasks-blocked-msg';
+  blockedMsg.hidden    = true;
+  blockedMsg.textContent = '⚠️ Completa todas las subtareas antes de marcar como Completado.';
+  subtasksSection.appendChild(blockedMsg);
+
+  // List
+  if (subtasks.length > 0) {
+    const list = document.createElement('ul');
+    list.className = 'subtasks-list';
+    subtasks.forEach(sub => {
+      const li = document.createElement('li');
+      li.className = 'subtask-item' + (sub.completed ? ' subtask-done' : '');
+
+      const chk = document.createElement('input');
+      chk.type      = 'checkbox';
+      chk.className = 'subtask-checkbox';
+      chk.checked   = !!sub.completed;
+      chk.addEventListener('change', () => toggleSubtask(task.id, sub.id, chk.checked));
+
+      const lbl = document.createElement('span');
+      lbl.className   = 'subtask-label';
+      lbl.textContent = sub.title;
+
+      const del = document.createElement('button');
+      del.className   = 'subtask-delete';
+      del.textContent = '×';
+      del.title       = 'Eliminar subtarea';
+      del.addEventListener('click', () => deleteSubtask(task.id, sub.id));
+
+      li.appendChild(chk);
+      li.appendChild(lbl);
+      li.appendChild(del);
+      list.appendChild(li);
+    });
+    subtasksSection.appendChild(list);
+  }
+
+  // Add subtask form (hidden)
+  const subtaskForm = document.createElement('div');
+  subtaskForm.className = 'subtask-form';
+  subtaskForm.hidden    = true;
+
+  const subtaskInput = document.createElement('input');
+  subtaskInput.type        = 'text';
+  subtaskInput.className   = 'subtask-input';
+  subtaskInput.placeholder = 'Descripción de la subtarea...';
+  subtaskInput.maxLength   = 120;
+
+  const subConfirm = document.createElement('button');
+  subConfirm.className   = 'assign-confirm';
+  subConfirm.textContent = '✓';
+  subConfirm.addEventListener('click', async () => {
+    const title = subtaskInput.value.trim();
+    if (!title) return;
+    subtaskForm.hidden   = true;
+    subtaskInput.value   = '';
+    await addSubtask(task.id, title);
+  });
+
+  const subCancel = document.createElement('button');
+  subCancel.className   = 'assign-cancel';
+  subCancel.textContent = '✕';
+  subCancel.addEventListener('click', () => { subtaskForm.hidden = true; });
+
+  subtaskInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  subConfirm.click();
+    if (e.key === 'Escape') subCancel.click();
+  });
+
+  subtaskForm.appendChild(subtaskInput);
+  subtaskForm.appendChild(subConfirm);
+  subtaskForm.appendChild(subCancel);
+  subtasksSection.appendChild(subtaskForm);
+
+  card.appendChild(subtasksSection);
   return card;
 }
 
+/* ------------------------------------------------------------------
+   Toggle formulario de asignación
+------------------------------------------------------------------ */
 function toggleAssignForm(card) {
   const form = card.querySelector('.assign-form');
   form.hidden = !form.hidden;
@@ -221,8 +340,7 @@ function renderBoard() {
 ------------------------------------------------------------------ */
 async function fetchAsignaciones() {
   try {
-    const data = await apiFetch('/asignaciones');
-    renderAsignaciones(data);
+    renderAsignaciones(await apiFetch('/asignaciones'));
   } catch (e) { console.error('Error cargando asignaciones', e); }
 }
 
@@ -274,7 +392,7 @@ function renderAsignaciones(data) {
 }
 
 /* ------------------------------------------------------------------
-   Acciones
+   Acciones — tareas
 ------------------------------------------------------------------ */
 async function addTask() {
   const taskInput   = document.getElementById('task-input');
@@ -297,10 +415,28 @@ async function moveTask(id, direction) {
   if (!task) return;
   const newIdx = COLUMNS.indexOf(task.status) + direction;
   if (newIdx < 0 || newIdx >= COLUMNS.length) return;
-  await apiFetch(`/tasks/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify({ status: COLUMNS[newIdx] })
-  });
+  const newStatus = COLUMNS[newIdx];
+
+  // Block move to "done" when there are incomplete subtasks
+  if (newStatus === 'done' && task.subtasks && task.subtasks.length > 0) {
+    const incomplete = task.subtasks.filter(s => !s.completed);
+    if (incomplete.length > 0) {
+      const card = document.querySelector(`.card[data-id="${id}"]`);
+      if (card) {
+        const section = card.querySelector('.subtasks-section');
+        const msg     = section && section.querySelector('.subtasks-blocked-msg');
+        if (section) section.classList.add('subtasks-blocked');
+        if (msg)     msg.hidden = false;
+        setTimeout(() => {
+          if (section) section.classList.remove('subtasks-blocked');
+          if (msg)     msg.hidden = true;
+        }, 2500);
+      }
+      return;
+    }
+  }
+
+  await apiFetch(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
   await fetchAll();
 }
 
@@ -310,11 +446,44 @@ async function deleteTask(id) {
 }
 
 async function assignTask(id, assignee) {
-  await apiFetch(`/tasks/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify({ assignee })
+  await apiFetch(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify({ assignee }) });
+  await fetchAll();
+}
+
+/* ------------------------------------------------------------------
+   Acciones — subtareas
+------------------------------------------------------------------ */
+async function addSubtask(taskId, title) {
+  await apiFetch(`/tasks/${taskId}/subtasks`, {
+    method: 'POST',
+    body: JSON.stringify({ title })
   });
   await fetchAll();
+}
+
+async function toggleSubtask(taskId, subtaskId, completed) {
+  await apiFetch(`/subtasks/${subtaskId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ completed: completed ? 1 : 0 })
+  });
+  // Local update — no need to reload from server
+  const task = tasks.find(t => t.id === taskId);
+  if (task && task.subtasks) {
+    const sub = task.subtasks.find(s => s.id === subtaskId);
+    if (sub) sub.completed = completed ? 1 : 0;
+  }
+  renderBoard();
+  fetchAsignaciones();
+}
+
+async function deleteSubtask(taskId, subtaskId) {
+  await apiFetch(`/subtasks/${subtaskId}`, { method: 'DELETE' });
+  const task = tasks.find(t => t.id === taskId);
+  if (task && task.subtasks) {
+    task.subtasks = task.subtasks.filter(s => s.id !== subtaskId);
+  }
+  renderBoard();
+  fetchAsignaciones();
 }
 
 /* ------------------------------------------------------------------
