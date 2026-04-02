@@ -409,6 +409,8 @@ function renderAsignaciones(data) {
         <td><span class="estado-badge estado-${t.status}">${COL_LABEL[t.status] || t.status}</span></td>
         <td>${t.hora_inicio ? formatFecha(t.hora_inicio) : '<span class="sin-dato">—</span>'}</td>
         <td>${t.hora_fin    ? formatFecha(t.hora_fin)    : '<span class="sin-dato">—</span>'}</td>`;
+      tr.title = 'Ir a la tarea en el tablero';
+      tr.addEventListener('click', () => scrollToCard(t.id));
       tbody.appendChild(tr);
     });
     tabla.appendChild(tbody);
@@ -479,6 +481,16 @@ async function assignTask(id, assignee) {
 /* ------------------------------------------------------------------
    Acciones — subtareas
 ------------------------------------------------------------------ */
+function scrollToCard(taskId) {
+  const card = document.querySelector(`.card[data-id="${taskId}"]`);
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  card.classList.remove('card-highlight');
+  void card.offsetWidth; // force reflow so animation restarts if triggered twice
+  card.classList.add('card-highlight');
+  setTimeout(() => card.classList.remove('card-highlight'), 2200);
+}
+
 async function togglePriority(id, priority) {
   await apiFetch(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify({ priority: priority ? 1 : 0 }) });
   const task = tasks.find(t => t.id === id);

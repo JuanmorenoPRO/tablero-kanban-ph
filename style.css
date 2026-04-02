@@ -407,7 +407,8 @@ h1 {
 }
 
 .asignacion-tabla tr:last-child td { border-bottom: none; }
-.asignacion-tabla tr:hover td { background: #fafafa; }
+.asignacion-tabla tbody tr { cursor: pointer; }
+.asignacion-tabla tbody tr:hover td { background: #eef2ff; }
 
 .estado-badge {
   font-size: 0.72rem;
@@ -423,6 +424,17 @@ h1 {
 .estado-done       { background: var(--green);  }
 
 .sin-dato { color: #bbb; font-weight: 600; }
+
+/* === CARD HIGHLIGHT (click from asignaciones) === */
+.card-highlight {
+  animation: card-spotlight 2.2s ease-out forwards;
+}
+
+@keyframes card-spotlight {
+  0%   { outline: 4px solid var(--blue); outline-offset: 4px; transform: translate(-3px, -3px); }
+  55%  { outline: 4px solid var(--blue); outline-offset: 4px; transform: translate(-3px, -3px); }
+  100% { outline: 4px solid transparent; outline-offset: 4px; transform: translate(0, 0); }
+}
 
 /* === PRIORITY === */
 .card-priority {
