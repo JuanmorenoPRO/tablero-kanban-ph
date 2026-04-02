@@ -98,8 +98,13 @@ function createCardElement(task) {
   assigneeRow.className = 'card-assignee-row';
   if (task.assignee) {
     const badge = document.createElement('span');
-    badge.className   = 'card-assignee';
+    badge.className   = 'card-assignee card-assignee-link';
     badge.textContent = '👤 ' + task.assignee;
+    badge.title       = `Ver asignaciones de ${task.assignee}`;
+    badge.addEventListener('click', e => {
+      e.stopPropagation();
+      scrollToAssignee(task.assignee);
+    });
     assigneeRow.appendChild(badge);
   }
   const btnAsignar = document.createElement('button');
@@ -154,7 +159,7 @@ function createCardElement(task) {
   const assignInput = document.createElement('input');
   assignInput.type        = 'text';
   assignInput.className   = 'assign-input';
-  assignInput.placeholder = 'Nombre de la persona...';
+  assignInput.placeholder = 'Nombre... (vacío = quitar asignación)';
   assignInput.maxLength   = 60;
   if (task.assignee) assignInput.value = task.assignee;
 
@@ -379,6 +384,7 @@ function renderAsignaciones(data) {
   data.forEach(({ assignee, tasks: list }) => {
     const bloque = document.createElement('div');
     bloque.className = 'asignacion-bloque';
+    bloque.dataset.assignee = assignee;
 
     const header = document.createElement('div');
     header.className = 'asignacion-header';
@@ -481,6 +487,20 @@ async function assignTask(id, assignee) {
 /* ------------------------------------------------------------------
    Acciones — subtareas
 ------------------------------------------------------------------ */
+function scrollToAssignee(name) {
+  const block = [...document.querySelectorAll('.asignacion-bloque')]
+    .find(el => el.dataset.assignee === name);
+  if (!block) {
+    document.querySelector('.asignaciones-section').scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+  block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  block.classList.remove('asignacion-highlight');
+  void block.offsetWidth;
+  block.classList.add('asignacion-highlight');
+  setTimeout(() => block.classList.remove('asignacion-highlight'), 2200);
+}
+
 function scrollToCard(taskId) {
   const card = document.querySelector(`.card[data-id="${taskId}"]`);
   if (!card) return;

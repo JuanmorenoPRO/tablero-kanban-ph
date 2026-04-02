@@ -279,6 +279,15 @@ h1 {
   padding: 1px 6px;
   display: inline-block;
 }
+.card-assignee-link {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: box-shadow 0.08s;
+}
+.card-assignee-link:hover {
+  box-shadow: 2px 2px 0 var(--black);
+}
 
 .btn-asignar {
   font-size: 0.72rem;
@@ -468,6 +477,15 @@ h1 {
 .estado-done       { background: var(--green);  }
 
 .sin-dato { color: #bbb; font-weight: 600; }
+
+/* === ASSIGNEE BLOCK HIGHLIGHT (click from card badge) === */
+.asignacion-bloque.asignacion-highlight {
+  animation: asignacion-spotlight 2.2s ease-out forwards;
+}
+@keyframes asignacion-spotlight {
+  0%, 55% { outline: 4px solid var(--yellow); outline-offset: 4px; }
+  100%     { outline: 4px solid transparent;  outline-offset: 4px; }
+}
 
 /* === CARD HIGHLIGHT (click from asignaciones) === */
 .card-highlight {
