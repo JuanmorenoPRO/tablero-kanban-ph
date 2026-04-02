@@ -774,6 +774,70 @@ function openTeamLoadChart() {
   });
 }
 
+/* ------------------------------------------------------------------
+   Informes completados
+------------------------------------------------------------------ */
+async function fetchInformes() {
+  try {
+    renderInformes(await apiFetch('/informes'));
+  } catch (e) { console.error('Error cargando informes', e); }
+}
+
+function renderInformes(data) {
+  const container = document.getElementById('informes-container');
+  container.innerHTML = '';
+  if (!data || data.length === 0) {
+    container.innerHTML = '<p class="empty-message">Sin informes registrados aún.</p>';
+    return;
+  }
+  data.forEach(inf => {
+    const item = document.createElement('div');
+    item.className = 'informe-item' + (inf.completed ? ' informe-done' : '');
+
+    const checkbox = document.createElement('input');
+    checkbox.type    = 'checkbox';
+    checkbox.checked = !!inf.completed;
+    checkbox.className = 'informe-checkbox';
+    checkbox.addEventListener('change', async () => {
+      await apiFetch(`/informes/${inf.id}/toggle`, { method: 'PATCH' });
+      fetchInformes();
+    });
+
+    const label = document.createElement('span');
+    label.className   = 'informe-title';
+    label.textContent = inf.title;
+
+    const meta = document.createElement('span');
+    meta.className   = 'informe-meta';
+    const d = new Date(inf.created_at);
+    meta.textContent = d.toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
+
+    const delBtn = document.createElement('button');
+    delBtn.className   = 'informe-delete';
+    delBtn.textContent = '✕';
+    delBtn.title       = 'Eliminar informe';
+    delBtn.addEventListener('click', async () => {
+      await apiFetch(`/informes/${inf.id}`, { method: 'DELETE' });
+      fetchInformes();
+    });
+
+    item.appendChild(checkbox);
+    item.appendChild(label);
+    item.appendChild(meta);
+    item.appendChild(delBtn);
+    container.appendChild(item);
+  });
+}
+
+async function addInforme() {
+  const input = document.getElementById('informe-input');
+  const title = input.value.trim();
+  if (!title) return;
+  await apiFetch('/informes', { method: 'POST', body: JSON.stringify({ title }) });
+  input.value = '';
+  fetchInformes();
+}
+
 document.getElementById('filter-asignaciones').addEventListener('input', () => {
   applyFilter('filter-asignaciones', document.getElementById('asignaciones-container'), 'assignee');
 });
@@ -782,4 +846,10 @@ document.getElementById('filter-unidades').addEventListener('input', () => {
   applyFilter('filter-unidades', document.getElementById('unidades-container'), 'unidad');
 });
 
+document.getElementById('informe-add-btn').addEventListener('click', addInforme);
+document.getElementById('informe-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addInforme();
+});
+
 fetchAll();
+fetchInformes();

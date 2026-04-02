@@ -485,6 +485,111 @@ h1 {
 
 .sin-dato { color: #bbb; font-weight: 600; }
 
+/* === INFORMES SECTION === */
+.informes-section {
+  max-width: 1200px;
+  margin: 40px auto 80px;
+  border-top: 4px solid var(--black);
+  padding-top: 28px;
+}
+
+.informes-add-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.informes-add-bar input {
+  flex: 1;
+  max-width: 560px;
+  padding: 10px 14px;
+  font-family: var(--font);
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: 3px solid var(--black);
+  border-radius: var(--radius);
+  background: var(--white);
+  box-shadow: 3px 3px 0 var(--black);
+  outline: none;
+}
+.informes-add-bar input:focus {
+  box-shadow: 4px 4px 0 var(--black);
+}
+.informes-add-bar button {
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 900;
+  padding: 10px 22px;
+  background: var(--green);
+  color: var(--black);
+  border: 3px solid var(--black);
+  border-radius: var(--radius);
+  box-shadow: 3px 3px 0 var(--black);
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.informes-add-bar button:hover {
+  transform: translate(-1px,-1px);
+  box-shadow: 4px 4px 0 var(--black);
+}
+.informes-add-bar button:active {
+  transform: translate(2px,2px);
+  box-shadow: 1px 1px 0 var(--black);
+}
+
+.informe-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 3px solid var(--black);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  background: var(--white);
+  box-shadow: 3px 3px 0 var(--black);
+}
+.informe-done {
+  background: #efffef;
+}
+.informe-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  accent-color: var(--green);
+}
+.informe-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.informe-done .informe-title {
+  text-decoration: line-through;
+  color: #666;
+}
+.informe-meta {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #888;
+  white-space: nowrap;
+}
+.informe-delete {
+  font-size: 0.8rem;
+  font-weight: 900;
+  background: var(--black);
+  color: var(--white);
+  border: none;
+  border-radius: 3px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.informe-delete:hover { background: #333; }
+
 /* === CHART BUTTONS === */
 .btn-chart-global {
   background: var(--orange) !important;

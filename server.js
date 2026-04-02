@@ -26,6 +26,12 @@ db.exec(`
     completed  INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000)
   );
+  CREATE TABLE IF NOT EXISTS informes (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    title      TEXT    NOT NULL,
+    completed  INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s', 'now') AS INTEGER) * 1000)
+  );
 `);
 
 /* ── Migrations for existing databases ─────────────────────────── */
@@ -181,6 +187,33 @@ app.get('/asignaciones', (req, res) => {
     grouped[t.assignee].push(t);
   }
   res.json(Object.entries(grouped).map(([assignee, tasks]) => ({ assignee, tasks })));
+});
+
+/* ── GET /informes ──────────────────────────────────────────────── */
+app.get('/informes', (req, res) => {
+  res.json(db.prepare('SELECT * FROM informes ORDER BY created_at DESC').all());
+});
+
+/* ── POST /informes ─────────────────────────────────────────────── */
+app.post('/informes', (req, res) => {
+  const { title } = req.body;
+  if (!title || !title.trim()) return res.status(400).json({ error: 'Título requerido' });
+  const info = db.prepare('INSERT INTO informes (title, completed) VALUES (?, 1)').run(title.trim());
+  res.json({ id: info.lastInsertRowid, title: title.trim(), completed: 1 });
+});
+
+/* ── PATCH /informes/:id/toggle ─────────────────────────────────── */
+app.patch('/informes/:id/toggle', (req, res) => {
+  const row = db.prepare('SELECT * FROM informes WHERE id = ?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'No encontrado' });
+  db.prepare('UPDATE informes SET completed = ? WHERE id = ?').run(row.completed ? 0 : 1, req.params.id);
+  res.json({ success: true });
+});
+
+/* ── DELETE /informes/:id ───────────────────────────────────────── */
+app.delete('/informes/:id', (req, res) => {
+  db.prepare('DELETE FROM informes WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
 });
 
 const PORT = 5000;
