@@ -175,124 +175,139 @@ function createCardElement(task) {
   card.appendChild(assignForm);
 
   /* ── Sección de subtareas ── */
-  const subtasks = task.subtasks || [];
+  const subtasks       = task.subtasks || [];
+  const isDone         = col === 'done';
+  const visibleSubs    = isDone ? subtasks.filter(s => s.completed) : subtasks;
   const completedCount = subtasks.filter(s => s.completed).length;
 
-  const subtasksSection = document.createElement('div');
-  subtasksSection.className = 'subtasks-section';
+  // Only render the section if there is something to show
+  if (!isDone || visibleSubs.length > 0) {
+    const subtasksSection = document.createElement('div');
+    subtasksSection.className = 'subtasks-section';
 
-  // Header
-  const subtasksHeader = document.createElement('div');
-  subtasksHeader.className = 'subtasks-header';
+    // Header
+    const subtasksHeader = document.createElement('div');
+    subtasksHeader.className = 'subtasks-header';
 
-  const subtasksTitle = document.createElement('span');
-  subtasksTitle.className = 'subtasks-title';
-  if (subtasks.length > 0) {
-    subtasksTitle.textContent = `Subtareas ${completedCount}/${subtasks.length}`;
-  } else {
-    subtasksTitle.textContent = 'Subtareas';
+    const subtasksTitle = document.createElement('span');
+    subtasksTitle.className = 'subtasks-title';
+    subtasksTitle.textContent = subtasks.length > 0
+      ? `Subtareas ${completedCount}/${subtasks.length}`
+      : 'Subtareas';
+    subtasksHeader.appendChild(subtasksTitle);
+
+    if (!isDone) {
+      const btnAddSub = document.createElement('button');
+      btnAddSub.className   = 'btn-add-subtask';
+      btnAddSub.textContent = '+ Subtarea';
+      btnAddSub.addEventListener('click', () => {
+        const f = subtasksSection.querySelector('.subtask-form');
+        f.hidden = !f.hidden;
+        if (!f.hidden) f.querySelector('.subtask-input').focus();
+      });
+      subtasksHeader.appendChild(btnAddSub);
+    }
+
+    subtasksSection.appendChild(subtasksHeader);
+
+    // Progress bar (only when not done — done tasks are already 100 %)
+    if (!isDone && subtasks.length > 0) {
+      const bar = document.createElement('div');
+      bar.className = 'subtasks-progress-bar';
+      const fill = document.createElement('div');
+      fill.className = 'subtasks-progress-fill';
+      fill.style.width = Math.round((completedCount / subtasks.length) * 100) + '%';
+      bar.appendChild(fill);
+      subtasksSection.appendChild(bar);
+    }
+
+    // Blocked warning (hidden by default, only needed on non-done cards)
+    if (!isDone) {
+      const blockedMsg = document.createElement('p');
+      blockedMsg.className   = 'subtasks-blocked-msg';
+      blockedMsg.hidden      = true;
+      blockedMsg.textContent = '⚠️ Completa todas las subtareas antes de marcar como Completado.';
+      subtasksSection.appendChild(blockedMsg);
+    }
+
+    // List
+    if (visibleSubs.length > 0) {
+      const list = document.createElement('ul');
+      list.className = 'subtasks-list';
+      visibleSubs.forEach(sub => {
+        const li = document.createElement('li');
+        li.className = 'subtask-item' + (sub.completed ? ' subtask-done' : '');
+
+        const chk = document.createElement('input');
+        chk.type      = 'checkbox';
+        chk.className = 'subtask-checkbox';
+        chk.checked   = !!sub.completed;
+        chk.disabled  = isDone;
+        if (!isDone) chk.addEventListener('change', () => toggleSubtask(task.id, sub.id, chk.checked));
+
+        const lbl = document.createElement('span');
+        lbl.className   = 'subtask-label';
+        lbl.textContent = sub.title;
+
+        li.appendChild(chk);
+        li.appendChild(lbl);
+
+        if (!isDone) {
+          const del = document.createElement('button');
+          del.className   = 'subtask-delete';
+          del.textContent = '×';
+          del.title       = 'Eliminar subtarea';
+          del.addEventListener('click', () => deleteSubtask(task.id, sub.id));
+          li.appendChild(del);
+        }
+
+        list.appendChild(li);
+      });
+      subtasksSection.appendChild(list);
+    }
+
+    // Add subtask form (hidden, not shown for done tasks)
+    if (!isDone) {
+      const subtaskForm = document.createElement('div');
+      subtaskForm.className = 'subtask-form';
+      subtaskForm.hidden    = true;
+
+      const subtaskInput = document.createElement('input');
+      subtaskInput.type        = 'text';
+      subtaskInput.className   = 'subtask-input';
+      subtaskInput.placeholder = 'Descripción de la subtarea...';
+      subtaskInput.maxLength   = 120;
+
+      const subConfirm = document.createElement('button');
+      subConfirm.className   = 'assign-confirm';
+      subConfirm.textContent = '✓';
+      subConfirm.addEventListener('click', async () => {
+        const title = subtaskInput.value.trim();
+        if (!title) return;
+        subtaskForm.hidden = true;
+        subtaskInput.value = '';
+        await addSubtask(task.id, title);
+      });
+
+      const subCancel = document.createElement('button');
+      subCancel.className   = 'assign-cancel';
+      subCancel.textContent = '✕';
+      subCancel.addEventListener('click', () => { subtaskForm.hidden = true; });
+
+      subtaskInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter')  subConfirm.click();
+        if (e.key === 'Escape') subCancel.click();
+      });
+
+      subtaskForm.appendChild(subtaskInput);
+      subtaskForm.appendChild(subConfirm);
+      subtaskForm.appendChild(subCancel);
+      subtasksSection.appendChild(subtaskForm);
+    }
+
+    card.appendChild(subtasksSection);
   }
-  subtasksHeader.appendChild(subtasksTitle);
 
-  const btnAddSub = document.createElement('button');
-  btnAddSub.className   = 'btn-add-subtask';
-  btnAddSub.textContent = '+ Subtarea';
-  btnAddSub.addEventListener('click', () => {
-    const f = subtasksSection.querySelector('.subtask-form');
-    f.hidden = !f.hidden;
-    if (!f.hidden) f.querySelector('.subtask-input').focus();
-  });
-  subtasksHeader.appendChild(btnAddSub);
-  subtasksSection.appendChild(subtasksHeader);
-
-  // Progress bar
-  if (subtasks.length > 0) {
-    const bar = document.createElement('div');
-    bar.className = 'subtasks-progress-bar';
-    const fill = document.createElement('div');
-    fill.className = 'subtasks-progress-fill';
-    fill.style.width = Math.round((completedCount / subtasks.length) * 100) + '%';
-    bar.appendChild(fill);
-    subtasksSection.appendChild(bar);
-  }
-
-  // Blocked warning (hidden by default)
-  const blockedMsg = document.createElement('p');
-  blockedMsg.className = 'subtasks-blocked-msg';
-  blockedMsg.hidden    = true;
-  blockedMsg.textContent = '⚠️ Completa todas las subtareas antes de marcar como Completado.';
-  subtasksSection.appendChild(blockedMsg);
-
-  // List
-  if (subtasks.length > 0) {
-    const list = document.createElement('ul');
-    list.className = 'subtasks-list';
-    subtasks.forEach(sub => {
-      const li = document.createElement('li');
-      li.className = 'subtask-item' + (sub.completed ? ' subtask-done' : '');
-
-      const chk = document.createElement('input');
-      chk.type      = 'checkbox';
-      chk.className = 'subtask-checkbox';
-      chk.checked   = !!sub.completed;
-      chk.addEventListener('change', () => toggleSubtask(task.id, sub.id, chk.checked));
-
-      const lbl = document.createElement('span');
-      lbl.className   = 'subtask-label';
-      lbl.textContent = sub.title;
-
-      const del = document.createElement('button');
-      del.className   = 'subtask-delete';
-      del.textContent = '×';
-      del.title       = 'Eliminar subtarea';
-      del.addEventListener('click', () => deleteSubtask(task.id, sub.id));
-
-      li.appendChild(chk);
-      li.appendChild(lbl);
-      li.appendChild(del);
-      list.appendChild(li);
-    });
-    subtasksSection.appendChild(list);
-  }
-
-  // Add subtask form (hidden)
-  const subtaskForm = document.createElement('div');
-  subtaskForm.className = 'subtask-form';
-  subtaskForm.hidden    = true;
-
-  const subtaskInput = document.createElement('input');
-  subtaskInput.type        = 'text';
-  subtaskInput.className   = 'subtask-input';
-  subtaskInput.placeholder = 'Descripción de la subtarea...';
-  subtaskInput.maxLength   = 120;
-
-  const subConfirm = document.createElement('button');
-  subConfirm.className   = 'assign-confirm';
-  subConfirm.textContent = '✓';
-  subConfirm.addEventListener('click', async () => {
-    const title = subtaskInput.value.trim();
-    if (!title) return;
-    subtaskForm.hidden   = true;
-    subtaskInput.value   = '';
-    await addSubtask(task.id, title);
-  });
-
-  const subCancel = document.createElement('button');
-  subCancel.className   = 'assign-cancel';
-  subCancel.textContent = '✕';
-  subCancel.addEventListener('click', () => { subtaskForm.hidden = true; });
-
-  subtaskInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter')  subConfirm.click();
-    if (e.key === 'Escape') subCancel.click();
-  });
-
-  subtaskForm.appendChild(subtaskInput);
-  subtaskForm.appendChild(subConfirm);
-  subtaskForm.appendChild(subCancel);
-  subtasksSection.appendChild(subtaskForm);
-
-  card.appendChild(subtasksSection);
   return card;
 }
 
