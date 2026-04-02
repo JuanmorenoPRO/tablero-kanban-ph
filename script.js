@@ -657,6 +657,123 @@ function applyFilter(inputId, container, attrName) {
   }
 }
 
+/* ------------------------------------------------------------------
+   Gráficas — modales
+------------------------------------------------------------------ */
+let _teamChart   = null;
+let _statusChart = null;
+
+function closeModal(id) {
+  document.getElementById(id).hidden = true;
+}
+
+function openStatusChart() {
+  const counts = { todo: 0, inprogress: 0, done: 0 };
+  tasks.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
+  const total = tasks.length;
+
+  if (_statusChart) { _statusChart.destroy(); _statusChart = null; }
+
+  const modal = document.getElementById('modal-status');
+  modal.hidden = false;
+
+  const ctx = document.getElementById('chart-status').getContext('2d');
+  _statusChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: [
+        `Pendiente (${counts.todo})`,
+        `En Progreso (${counts.inprogress})`,
+        `Completado (${counts.done})`
+      ],
+      datasets: [{
+        data: [counts.todo, counts.inprogress, counts.done],
+        backgroundColor: ['#FFE600', '#3D5AFE', '#00E676'],
+        borderColor: '#0a0a0a',
+        borderWidth: 3
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { weight: '700', size: 13 }, padding: 18 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const pct = total > 0 ? Math.round(ctx.parsed / total * 100) : 0;
+              return `  ${ctx.label}: ${pct}%`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function openTeamLoadChart() {
+  const people = {};
+  tasks.forEach(t => {
+    if (!t.assignee) return;
+    if (!people[t.assignee]) people[t.assignee] = { todo: 0, inprogress: 0, done: 0 };
+    if (people[t.assignee][t.status] !== undefined) people[t.assignee][t.status]++;
+  });
+
+  const labels = Object.keys(people);
+  if (labels.length === 0) { alert('No hay personas asignadas aún.'); return; }
+
+  if (_teamChart) { _teamChart.destroy(); _teamChart = null; }
+
+  const modal = document.getElementById('modal-team-load');
+  modal.hidden = false;
+
+  const ctx = document.getElementById('chart-team-load').getContext('2d');
+  _teamChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Pendiente',
+          data: labels.map(p => people[p].todo),
+          backgroundColor: '#FFE600',
+          borderColor: '#0a0a0a',
+          borderWidth: 2
+        },
+        {
+          label: 'En Progreso',
+          data: labels.map(p => people[p].inprogress),
+          backgroundColor: '#3D5AFE',
+          borderColor: '#0a0a0a',
+          borderWidth: 2
+        },
+        {
+          label: 'Completado',
+          data: labels.map(p => people[p].done),
+          backgroundColor: '#00E676',
+          borderColor: '#0a0a0a',
+          borderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: { stacked: true, ticks: { font: { weight: '700', size: 13 } } },
+        y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1, font: { weight: '700' } } }
+      },
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { weight: '700', size: 13 }, padding: 18 } },
+        tooltip: {
+          callbacks: {
+            title: ctx => ctx[0].label,
+            label: ctx => `  ${ctx.dataset.label}: ${ctx.parsed.y}`
+          }
+        }
+      }
+    }
+  });
+}
+
 document.getElementById('filter-asignaciones').addEventListener('input', () => {
   applyFilter('filter-asignaciones', document.getElementById('asignaciones-container'), 'assignee');
 });

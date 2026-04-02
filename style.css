@@ -485,9 +485,113 @@ h1 {
 
 .sin-dato { color: #bbb; font-weight: 600; }
 
+/* === CHART BUTTONS === */
+.btn-chart-global {
+  background: var(--orange) !important;
+}
+.btn-chart-section {
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 900;
+  padding: 9px 16px;
+  background: var(--orange);
+  color: var(--black);
+  border: 3px solid var(--black);
+  border-radius: var(--radius);
+  box-shadow: 3px 3px 0 var(--black);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.btn-chart-section:hover {
+  transform: translate(-1px,-1px);
+  box-shadow: 4px 4px 0 var(--black);
+}
+.btn-chart-section:active {
+  transform: translate(2px,2px);
+  box-shadow: 1px 1px 0 var(--black);
+}
+
+/* === CHART MODALS === */
+.chart-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chart-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(2px);
+}
+.chart-modal-box {
+  position: relative;
+  z-index: 1;
+  background: var(--white);
+  border: 4px solid var(--black);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  width: 90%;
+  max-width: 480px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chart-modal-wide {
+  max-width: 720px;
+}
+.chart-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 3px solid var(--black);
+  background: var(--yellow);
+}
+.chart-modal-header h3 {
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+.chart-modal-close {
+  font-size: 1.1rem;
+  font-weight: 900;
+  background: var(--black);
+  color: var(--white);
+  border: none;
+  border-radius: 3px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.chart-modal-close:hover { background: #333; }
+.chart-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chart-modal-body canvas {
+  max-width: 100%;
+}
+
 /* === SECTION FILTER BAR === */
 .section-filter-bar {
   margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .section-filter-bar input {
   width: 100%;

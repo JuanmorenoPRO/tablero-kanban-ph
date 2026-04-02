@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kanban — Contabilidad Residencial</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -17,6 +18,9 @@
       </button>
       <button class="scroll-btn" onclick="document.querySelector('.unidades-section').scrollIntoView({behavior:'smooth'})">
         ↓ Ver por unidad residencial
+      </button>
+      <button class="scroll-btn btn-chart-global" onclick="openStatusChart()">
+        📊 Resumen general
       </button>
     </div>
     <div class="add-task-bar">
@@ -56,6 +60,7 @@
     </div>
     <div class="section-filter-bar">
       <input type="text" id="filter-asignaciones" placeholder="🔍 Filtrar por persona..." />
+      <button class="btn-chart-section" onclick="openTeamLoadChart()">📊 Carga del equipo</button>
     </div>
     <div id="asignaciones-container">
       <p class="empty-message">Sin asignaciones aún.</p>
@@ -76,6 +81,34 @@
       <p class="empty-message">Sin unidades residenciales registradas aún.</p>
     </div>
   </section>
+
+  <!-- Modal: Resumen general (doughnut) -->
+  <div id="modal-status" class="chart-modal" hidden>
+    <div class="chart-modal-overlay" onclick="closeModal('modal-status')"></div>
+    <div class="chart-modal-box">
+      <div class="chart-modal-header">
+        <h3>Resumen General de Tareas</h3>
+        <button class="chart-modal-close" onclick="closeModal('modal-status')">✕</button>
+      </div>
+      <div class="chart-modal-body">
+        <canvas id="chart-status"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Carga del equipo (stacked bar) -->
+  <div id="modal-team-load" class="chart-modal" hidden>
+    <div class="chart-modal-overlay" onclick="closeModal('modal-team-load')"></div>
+    <div class="chart-modal-box chart-modal-wide">
+      <div class="chart-modal-header">
+        <h3>Carga del Equipo por Persona</h3>
+        <button class="chart-modal-close" onclick="closeModal('modal-team-load')">✕</button>
+      </div>
+      <div class="chart-modal-body">
+        <canvas id="chart-team-load"></canvas>
+      </div>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
