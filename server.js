@@ -1,3 +1,4 @@
+require('dotenv').config();
 const http    = require('http');
 const express = require('express');
 const { Server } = require('socket.io');
@@ -335,7 +336,8 @@ app.post('/admin/seed', async (req, res) => {
 });
 
 /* ── POST /admin/reset ──────────────────────────────────────────── */
-const ADMIN_KEY = process.env.ADMIN_KEY || "ph-admin-8475*/-";
+const ADMIN_KEY = process.env.ADMIN_KEY;
+if (!ADMIN_KEY) { console.error('ERROR: ADMIN_KEY env var is not set'); process.exit(1); }
 
 app.post('/admin/reset', async (req, res) => {
   try {
