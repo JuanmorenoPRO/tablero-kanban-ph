@@ -1016,6 +1016,29 @@ h1 {
   cursor: pointer;
 }
 .informes-admin-bar button:first-of-type { background: var(--black); color: var(--white); }
+.informes-admin-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.btn-reset-informes {
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 900;
+  padding: 8px 18px;
+  background: #fff1f0;
+  color: #b91c1c;
+  border: 2px solid #b91c1c;
+  border-radius: var(--radius);
+  box-shadow: 3px 3px 0 #b91c1c;
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.btn-reset-informes:hover   { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 #b91c1c; }
+.btn-reset-informes:active  { transform: translate(2px,2px);  box-shadow: 1px 1px 0 #b91c1c; }
+.btn-reset-informes:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
 .informes-admin-error {
   font-size: 0.82rem;
   font-weight: 700;

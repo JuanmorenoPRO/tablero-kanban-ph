@@ -1033,6 +1033,7 @@ async function fetchInformes() {
 }
 
 let informesAdminMode = false;
+let informesAdminKey  = '';
 let informesFilter    = 'all'; // 'all' | 'done' | 'pending'
 
 function renderInformes(data) {
@@ -1159,6 +1160,7 @@ document.getElementById('btn-informes-admin').addEventListener('click', () => {
   if (informesAdminMode) {
     informesAdminMode = false;
     document.getElementById('btn-informes-admin').textContent = '🔐 Admin';
+    document.getElementById('informes-admin-actions').hidden = true;
     fetchInformes();
     return;
   }
@@ -1173,8 +1175,10 @@ async function tryInformesAdmin() {
   try {
     await apiFetch('/admin/verify', { method: 'POST', body: JSON.stringify({ key }) });
     informesAdminMode = true;
-    document.getElementById('informes-admin-bar').hidden = true;
-    document.getElementById('informes-admin-key').value  = '';
+    informesAdminKey  = key;
+    document.getElementById('informes-admin-bar').hidden    = true;
+    document.getElementById('informes-admin-actions').hidden = false;
+    document.getElementById('informes-admin-key').value     = '';
     errorEl.hidden = true;
     document.getElementById('btn-informes-admin').textContent = '🔓 Salir admin';
     fetchInformes();
@@ -1195,6 +1199,20 @@ document.getElementById('informes-admin-key').addEventListener('keydown', e => {
 document.getElementById('informes-admin-cancel').addEventListener('click', () => {
   document.getElementById('informes-admin-bar').hidden = true;
   document.getElementById('informes-admin-error').hidden = true;
+});
+
+document.getElementById('btn-reset-informes').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-reset-informes');
+  btn.disabled = true;
+  btn.textContent = 'Desmarcando...';
+  try {
+    await apiFetch('/informes/reset-all', { method: 'POST', body: JSON.stringify({ key: informesAdminKey }) });
+    btn.textContent = '✓ Listo';
+    setTimeout(() => { btn.textContent = '↺ Desmarcar todos'; btn.disabled = false; }, 1500);
+  } catch {
+    btn.textContent = '↺ Desmarcar todos';
+    btn.disabled = false;
+  }
 });
 
 document.getElementById('btn-populate-informes').addEventListener('click', async () => {

@@ -303,6 +303,17 @@ app.patch('/informes/:id/toggle', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
+/* ── POST /informes/reset-all ───────────────────────────────────── */
+app.post('/informes/reset-all', async (req, res) => {
+  try {
+    const { key } = req.body;
+    if (key !== ADMIN_KEY) return res.status(401).json({ error: 'Clave incorrecta' });
+    await pool.query('UPDATE informes SET completed = 0');
+    io.emit('refresh');
+    res.json({ ok: true });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
 /* ── POST /informes/populate-from-unidades ──────────────────────── */
 app.post('/informes/populate-from-unidades', async (_req, res) => {
   try {
