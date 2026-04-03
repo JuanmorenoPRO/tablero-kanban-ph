@@ -137,6 +137,8 @@
     <button id="btn-reset-all" class="btn-reset-all">⚠️ Reiniciar todas las tareas</button>
     <button id="btn-seed" class="btn-seed">📥 Poblar tareas</button>
     <button id="btn-dedup" class="btn-dedup">🧹 Eliminar duplicados</button>
+    <button id="btn-backup" class="btn-backup">💾 Guardar backup</button>
+    <button id="btn-restore" class="btn-restore">📂 Restaurar backup</button>
   </div>
 
   <!-- Modal: Eliminar duplicados -->
@@ -257,6 +259,50 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal: Guardar backup -->
+  <div id="modal-backup" class="chart-modal" hidden>
+    <div class="chart-modal-overlay" onclick="closeBackupModal()"></div>
+    <div class="chart-modal-box reset-modal-box">
+      <div class="chart-modal-header">
+        <h3>💾 Guardar backup</h3>
+        <button class="chart-modal-close" onclick="closeBackupModal()">✕</button>
+      </div>
+      <div class="chart-modal-body reset-modal-body">
+        <p class="reset-modal-desc">Se descargará un archivo JSON con el estado completo del tablero (tareas, subtareas e informes). Ingresa la clave de administrador para continuar.</p>
+        <input type="password" id="backup-admin-key" class="reset-key-input" placeholder="Clave de administrador..." />
+        <p id="backup-error" class="reset-error" hidden>Clave incorrecta. Intenta de nuevo.</p>
+        <div class="reset-modal-actions">
+          <button id="btn-backup-confirm" class="btn-seed-confirm">Descargar backup</button>
+          <button class="btn-reset-cancel" onclick="closeBackupModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Restaurar backup -->
+  <div id="modal-restore" class="chart-modal" hidden>
+    <div class="chart-modal-overlay" onclick="closeRestoreModal()"></div>
+    <div class="chart-modal-box reset-modal-box">
+      <div class="chart-modal-header">
+        <h3>📂 Restaurar backup</h3>
+        <button class="chart-modal-close" onclick="closeRestoreModal()">✕</button>
+      </div>
+      <div class="chart-modal-body reset-modal-body">
+        <p class="reset-modal-desc">⚠️ Esto <strong>reemplazará completamente</strong> todos los datos actuales con el backup seleccionado. Esta acción no se puede deshacer.</p>
+        <input type="file" id="restore-file-input" accept=".json" class="restore-file-input" />
+        <input type="password" id="restore-admin-key" class="reset-key-input" placeholder="Clave de administrador..." />
+        <p id="restore-error" class="reset-error" hidden></p>
+        <p id="restore-success" class="seed-success" hidden>✅ Backup restaurado correctamente.</p>
+        <div class="reset-modal-actions">
+          <button id="btn-restore-confirm" class="btn-reset-confirm">Restaurar</button>
+          <button class="btn-reset-cancel" onclick="closeRestoreModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="restore-file-hidden" accept=".json" style="display:none" />
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>

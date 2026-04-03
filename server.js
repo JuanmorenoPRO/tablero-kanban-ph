@@ -73,7 +73,7 @@ const httpServer = http.createServer(app);
 const io         = new Server(httpServer);
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '20mb' }));
 app.use(express.static(path.join(__dirname)));
 
 /* ── GET /tasks  (includes subtasks array per task) ────────────── */
@@ -343,6 +343,76 @@ app.post('/admin/verify', (req, res) => {
   const { key } = req.body;
   if (key !== ADMIN_KEY) return res.status(401).json({ error: 'Clave incorrecta' });
   res.json({ ok: true });
+});
+
+/* ── POST /admin/backup ─────────────────────────────────────────── */
+app.post('/admin/backup', async (req, res) => {
+  try {
+    const { key } = req.body;
+    if (key !== ADMIN_KEY) return res.status(401).json({ error: 'Clave incorrecta' });
+    const tasks    = await queryAll('SELECT * FROM tasks    ORDER BY id ASC');
+    const subtasks = await queryAll('SELECT * FROM subtasks ORDER BY id ASC');
+    const informes = await queryAll('SELECT * FROM informes ORDER BY id ASC');
+    res.json({ version: 1, created_at: Date.now(), tasks, subtasks, informes });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
+/* ── POST /admin/restore ────────────────────────────────────────── */
+app.post('/admin/restore', async (req, res) => {
+  try {
+    const { key, backup } = req.body;
+    if (key !== ADMIN_KEY) return res.status(401).json({ error: 'Clave incorrecta' });
+    if (!backup || !Array.isArray(backup.tasks)) return res.status(400).json({ error: 'Backup inválido' });
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('DELETE FROM subtasks');
+      await client.query('DELETE FROM informes');
+      await client.query('DELETE FROM tasks');
+      await client.query('SELECT setval(pg_get_serial_sequence(\'tasks\',\'id\'),    1, false)');
+      await client.query('SELECT setval(pg_get_serial_sequence(\'subtasks\',\'id\'), 1, false)');
+      await client.query('SELECT setval(pg_get_serial_sequence(\'informes\',\'id\'), 1, false)');
+
+      for (const t of backup.tasks) {
+        await client.query(
+          `INSERT INTO tasks (id,title,status,assignee,unidad_residencial,hora_inicio,hora_fin,priority,created_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          [t.id, t.title, t.status, t.assignee, t.unidad_residencial,
+           t.hora_inicio ?? null, t.hora_fin ?? null, t.priority, t.created_at]
+        );
+      }
+      for (const s of (backup.subtasks || [])) {
+        await client.query(
+          `INSERT INTO subtasks (id,task_id,title,completed,blocked,blocked_comment,blocked_at,total_blocked_ms,created_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+          [s.id, s.task_id, s.title, s.completed, s.blocked ?? 0,
+           s.blocked_comment ?? null, s.blocked_at ?? null, s.total_blocked_ms ?? 0, s.created_at]
+        );
+      }
+      for (const i of (backup.informes || [])) {
+        await client.query(
+          'INSERT INTO informes (id,title,completed,created_at) VALUES ($1,$2,$3,$4)',
+          [i.id, i.title, i.completed, i.created_at]
+        );
+      }
+
+      // Resync sequences to max ids
+      await client.query(`SELECT setval(pg_get_serial_sequence('tasks','id'),    COALESCE((SELECT MAX(id) FROM tasks),    1))`);
+      await client.query(`SELECT setval(pg_get_serial_sequence('subtasks','id'), COALESCE((SELECT MAX(id) FROM subtasks), 1))`);
+      await client.query(`SELECT setval(pg_get_serial_sequence('informes','id'), COALESCE((SELECT MAX(id) FROM informes), 1))`);
+
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+
+    io.emit('refresh');
+    res.json({ ok: true });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
 /* ── POST /admin/seed ───────────────────────────────────────────── */

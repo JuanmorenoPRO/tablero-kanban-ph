@@ -1271,6 +1271,104 @@ function openInformesChart() {
 }
 
 /* ------------------------------------------------------------------
+   Backup / Restore
+------------------------------------------------------------------ */
+function closeBackupModal() {
+  document.getElementById('modal-backup').hidden = true;
+  document.getElementById('backup-admin-key').value = '';
+  document.getElementById('backup-error').hidden = true;
+}
+
+function closeRestoreModal() {
+  document.getElementById('modal-restore').hidden = true;
+  document.getElementById('restore-admin-key').value = '';
+  document.getElementById('restore-file-input').value = '';
+  document.getElementById('restore-error').hidden = true;
+  document.getElementById('restore-success').hidden = true;
+}
+
+document.getElementById('btn-backup').addEventListener('click', () => {
+  document.getElementById('modal-backup').hidden = false;
+  document.getElementById('backup-admin-key').focus();
+});
+
+document.getElementById('backup-admin-key').addEventListener('keydown', e => {
+  if (e.key === 'Enter')  document.getElementById('btn-backup-confirm').click();
+  if (e.key === 'Escape') closeBackupModal();
+});
+
+document.getElementById('btn-backup-confirm').addEventListener('click', async () => {
+  const key     = document.getElementById('backup-admin-key').value;
+  const errorEl = document.getElementById('backup-error');
+  errorEl.hidden = true;
+  try {
+    const backup = await apiFetch('/admin/backup', {
+      method: 'POST',
+      body: JSON.stringify({ key })
+    });
+    const blob     = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url      = URL.createObjectURL(blob);
+    const date     = new Date();
+    const stamp    = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    const a        = document.createElement('a');
+    a.href         = url;
+    a.download     = `tablero-backup-${stamp}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    closeBackupModal();
+  } catch {
+    errorEl.hidden = false;
+    document.getElementById('backup-admin-key').select();
+  }
+});
+
+document.getElementById('btn-restore').addEventListener('click', () => {
+  document.getElementById('modal-restore').hidden = false;
+  document.getElementById('restore-file-input').focus();
+});
+
+document.getElementById('restore-admin-key').addEventListener('keydown', e => {
+  if (e.key === 'Enter')  document.getElementById('btn-restore-confirm').click();
+  if (e.key === 'Escape') closeRestoreModal();
+});
+
+document.getElementById('btn-restore-confirm').addEventListener('click', async () => {
+  const key      = document.getElementById('restore-admin-key').value;
+  const fileEl   = document.getElementById('restore-file-input');
+  const errorEl  = document.getElementById('restore-error');
+  const successEl = document.getElementById('restore-success');
+  errorEl.hidden   = true;
+  successEl.hidden = true;
+
+  if (!fileEl.files.length) {
+    errorEl.textContent = 'Selecciona un archivo de backup.';
+    errorEl.hidden = false;
+    return;
+  }
+  const text = await fileEl.files[0].text();
+  let backup;
+  try { backup = JSON.parse(text); } catch {
+    errorEl.textContent = 'Archivo inválido — no es un JSON válido.';
+    errorEl.hidden = false;
+    return;
+  }
+  if (!backup.tasks || !Array.isArray(backup.tasks)) {
+    errorEl.textContent = 'Archivo inválido — formato de backup no reconocido.';
+    errorEl.hidden = false;
+    return;
+  }
+  try {
+    await apiFetch('/admin/restore', { method: 'POST', body: JSON.stringify({ key, backup }) });
+    successEl.hidden = false;
+    setTimeout(closeRestoreModal, 1500);
+  } catch (err) {
+    errorEl.textContent = err.message.includes('401') ? 'Clave incorrecta.' : 'Error al restaurar el backup.';
+    errorEl.hidden = false;
+    document.getElementById('restore-admin-key').select();
+  }
+});
+
+/* ------------------------------------------------------------------
    Reinicio admin
 ------------------------------------------------------------------ */
 function closeResetModal() {
