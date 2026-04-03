@@ -71,8 +71,8 @@ app.use(express.static(path.join(__dirname)));
 /* ── GET /tasks  (includes subtasks array per task) ────────────── */
 app.get('/tasks', async (req, res) => {
   try {
-    const tasks   = await queryAll('SELECT * FROM tasks ORDER BY created_at ASC');
-    const allSubs = await queryAll('SELECT * FROM subtasks ORDER BY created_at ASC');
+    const tasks   = await queryAll('SELECT * FROM tasks ORDER BY created_at ASC, id ASC');
+    const allSubs = await queryAll('SELECT * FROM subtasks ORDER BY created_at ASC, id ASC');
     const subMap  = {};
     for (const s of allSubs) {
       if (!subMap[s.task_id]) subMap[s.task_id] = [];
@@ -128,7 +128,7 @@ app.put('/tasks/:id', async (req, res) => {
     `, [title, status, assignee, unidad_residencial, hora_inicio, hora_fin, priority, id]);
 
     updated.subtasks = await queryAll(
-      'SELECT * FROM subtasks WHERE task_id = $1 ORDER BY created_at ASC', [id]
+      'SELECT * FROM subtasks WHERE task_id = $1 ORDER BY created_at ASC, id ASC', [id]
     );
     res.json(updated);
     io.emit('refresh');
@@ -198,7 +198,7 @@ app.delete('/subtasks/:id', async (req, res) => {
 app.get('/unidades', async (req, res) => {
   try {
     const rows    = await queryAll(`SELECT * FROM tasks WHERE unidad_residencial != '' ORDER BY unidad_residencial ASC, created_at ASC`);
-    const allSubs = await queryAll('SELECT * FROM subtasks ORDER BY created_at ASC');
+    const allSubs = await queryAll('SELECT * FROM subtasks ORDER BY created_at ASC, id ASC');
     const subMap  = {};
     for (const s of allSubs) {
       if (!subMap[s.task_id]) subMap[s.task_id] = [];
@@ -218,7 +218,7 @@ app.get('/unidades', async (req, res) => {
 app.get('/asignaciones', async (req, res) => {
   try {
     const rows    = await queryAll(`SELECT * FROM tasks WHERE assignee != '' ORDER BY assignee ASC, created_at ASC`);
-    const allSubs = await queryAll('SELECT * FROM subtasks ORDER BY created_at ASC');
+    const allSubs = await queryAll('SELECT * FROM subtasks ORDER BY created_at ASC, id ASC');
     const subMap  = {};
     for (const s of allSubs) {
       if (!subMap[s.task_id]) subMap[s.task_id] = [];
