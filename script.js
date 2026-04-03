@@ -90,8 +90,13 @@ function createCardElement(task) {
 
   if (task.unidad_residencial) {
     const unidad = document.createElement('span');
-    unidad.className   = 'card-unidad';
+    unidad.className   = 'card-unidad card-unidad-link';
     unidad.textContent = '🏢 ' + task.unidad_residencial;
+    unidad.title       = `Ver unidad: ${task.unidad_residencial}`;
+    unidad.addEventListener('click', e => {
+      e.stopPropagation();
+      scrollToUnidad(task.unidad_residencial);
+    });
     textBlock.appendChild(unidad);
   }
 
@@ -617,6 +622,20 @@ async function assignTask(id, assignee) {
 /* ------------------------------------------------------------------
    Acciones — subtareas
 ------------------------------------------------------------------ */
+function scrollToUnidad(nombre) {
+  const block = [...document.querySelectorAll('.asignacion-bloque')]
+    .find(el => el.dataset.unidad === nombre);
+  if (!block) {
+    document.querySelector('.unidades-section').scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+  block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  block.classList.remove('asignacion-highlight');
+  void block.offsetWidth;
+  block.classList.add('asignacion-highlight');
+  setTimeout(() => block.classList.remove('asignacion-highlight'), 2200);
+}
+
 function scrollToAssignee(name) {
   const block = [...document.querySelectorAll('.asignacion-bloque')]
     .find(el => el.dataset.assignee === name);

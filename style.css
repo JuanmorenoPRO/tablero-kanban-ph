@@ -346,6 +346,15 @@ h1 {
 .card-assignee-link:hover {
   box-shadow: 2px 2px 0 var(--black);
 }
+.card-unidad-link {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: box-shadow 0.08s;
+}
+.card-unidad-link:hover {
+  box-shadow: 2px 2px 0 var(--black);
+}
 
 .btn-asignar {
   font-size: 0.72rem;
