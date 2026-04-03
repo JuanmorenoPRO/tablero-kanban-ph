@@ -41,12 +41,20 @@ async function initSchema() {
       created_at         BIGINT  NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
     );
     CREATE TABLE IF NOT EXISTS subtasks (
-      id         SERIAL  PRIMARY KEY,
-      task_id    INTEGER NOT NULL,
-      title      TEXT    NOT NULL,
-      completed  INTEGER NOT NULL DEFAULT 0,
-      created_at BIGINT  NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
+      id               SERIAL  PRIMARY KEY,
+      task_id          INTEGER NOT NULL,
+      title            TEXT    NOT NULL,
+      completed        INTEGER NOT NULL DEFAULT 0,
+      blocked          INTEGER NOT NULL DEFAULT 0,
+      blocked_comment  TEXT    DEFAULT NULL,
+      blocked_at       BIGINT  DEFAULT NULL,
+      total_blocked_ms BIGINT  NOT NULL DEFAULT 0,
+      created_at       BIGINT  NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
     );
+    ALTER TABLE subtasks ADD COLUMN IF NOT EXISTS blocked          INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE subtasks ADD COLUMN IF NOT EXISTS blocked_comment  TEXT    DEFAULT NULL;
+    ALTER TABLE subtasks ADD COLUMN IF NOT EXISTS blocked_at       BIGINT  DEFAULT NULL;
+    ALTER TABLE subtasks ADD COLUMN IF NOT EXISTS total_blocked_ms BIGINT  NOT NULL DEFAULT 0;
     CREATE TABLE IF NOT EXISTS informes (
       id         SERIAL  PRIMARY KEY,
       title      TEXT    NOT NULL,
@@ -171,11 +179,37 @@ app.put('/subtasks/:id', async (req, res) => {
     const id  = Number(req.params.id);
     const sub = await queryOne('SELECT * FROM subtasks WHERE id = $1', [id]);
     if (!sub) return res.status(404).json({ error: 'Subtarea no encontrada' });
+
     const completed = req.body.completed !== undefined ? Number(req.body.completed) : sub.completed;
     const title     = req.body.title     !== undefined ? req.body.title             : sub.title;
-    const updated   = await queryOne(
-      'UPDATE subtasks SET completed=$1, title=$2 WHERE id=$3 RETURNING *',
-      [completed, title, id]
+
+    let blocked          = sub.blocked;
+    let blocked_comment  = sub.blocked_comment;
+    let blocked_at       = sub.blocked_at;
+    let total_blocked_ms = Number(sub.total_blocked_ms) || 0;
+
+    if (req.body.blocked !== undefined) {
+      const newBlocked = Number(req.body.blocked);
+      if (newBlocked === 1 && !sub.blocked) {
+        // Bloqueando: registrar momento de inicio del bloqueo
+        blocked         = 1;
+        blocked_comment = req.body.blocked_comment || null;
+        blocked_at      = Date.now();
+      } else if (newBlocked === 0 && sub.blocked) {
+        // Desbloqueando: acumular tiempo bloqueado
+        if (sub.blocked_at) total_blocked_ms += Date.now() - Number(sub.blocked_at);
+        blocked         = 0;
+        blocked_comment = null;
+        blocked_at      = null;
+      }
+    }
+
+    const updated = await queryOne(
+      `UPDATE subtasks
+          SET completed=$1, title=$2, blocked=$3, blocked_comment=$4,
+              blocked_at=$5, total_blocked_ms=$6
+        WHERE id=$7 RETURNING *`,
+      [completed, title, blocked, blocked_comment, blocked_at, total_blocked_ms, id]
     );
     res.json(updated);
     io.emit('refresh');
@@ -269,6 +303,32 @@ app.patch('/informes/:id/toggle', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
+/* ── POST /informes/populate-from-unidades ──────────────────────── */
+app.post('/informes/populate-from-unidades', async (_req, res) => {
+  try {
+    const wb   = XLSX.readFile('./unidades/LISTA UNIDADES PH..xlsx');
+    const ws   = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    const unidades = rows.slice(1).map(r => (r[2] || '').trim()).filter(Boolean);
+
+    const existing = await queryAll('SELECT title FROM informes');
+    const existingSet = new Set(existing.map(r => r.title.toLowerCase()));
+
+    let inserted = 0;
+    for (const u of unidades) {
+      if (!existingSet.has(u.toLowerCase())) {
+        await queryOne(
+          'INSERT INTO informes (title, completed) VALUES ($1, 0) RETURNING id',
+          [u]
+        );
+        inserted++;
+      }
+    }
+    if (inserted > 0) io.emit('refresh');
+    res.json({ inserted, skipped: unidades.length - inserted });
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
 /* ── DELETE /informes/:id ───────────────────────────────────────── */
 app.delete('/informes/:id', async (req, res) => {
   try {
@@ -276,6 +336,13 @@ app.delete('/informes/:id', async (req, res) => {
     res.json({ success: true });
     io.emit('refresh');
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
+/* ── POST /admin/verify ─────────────────────────────────────────── */
+app.post('/admin/verify', (req, res) => {
+  const { key } = req.body;
+  if (key !== ADMIN_KEY) return res.status(401).json({ error: 'Clave incorrecta' });
+  res.json({ ok: true });
 });
 
 /* ── POST /admin/seed ───────────────────────────────────────────── */

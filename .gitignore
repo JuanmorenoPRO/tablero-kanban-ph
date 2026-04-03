@@ -1,3 +1,7 @@
 node_modules/
 kanban.db
 .env
+.local/
+.DS_Store
+*.log
+attached_assets/

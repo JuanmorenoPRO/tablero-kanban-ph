@@ -48,6 +48,32 @@ function formatAge(ts) {
   return `${d.getDate()} ${meses[d.getMonth()]}`;
 }
 
+function formatDuration(ms) {
+  if (!ms || ms <= 0) return null;
+  const totalMins = Math.floor(ms / 60000);
+  if (totalMins < 1)  return 'menos de 1 min';
+  if (totalMins < 60) return `${totalMins} min`;
+  const hours = Math.floor(totalMins / 60);
+  const mins  = totalMins % 60;
+  if (hours < 24) return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  const days  = Math.floor(hours / 24);
+  const remH  = hours % 24;
+  return remH > 0 ? `${days}d ${remH}h` : `${days}d`;
+}
+
+function taskBlockedMs(task) {
+  return (task.subtasks || []).reduce((sum, s) => {
+    let ms = Number(s.total_blocked_ms) || 0;
+    if (s.blocked && s.blocked_at) ms += Date.now() - Number(s.blocked_at);
+    return sum + ms;
+  }, 0);
+}
+
+function taskNetDuration(task) {
+  if (!task.hora_fin) return 0;
+  return Math.max(0, task.hora_fin - (task.hora_inicio || task.created_at) - taskBlockedMs(task));
+}
+
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -131,6 +157,25 @@ function createCardElement(task) {
     el.className   = 'card-time fin';
     el.textContent = '✓ Completado: ' + formatFecha(task.hora_fin);
     textBlock.appendChild(el);
+  }
+  if (task.hora_fin) {
+    const bMs      = taskBlockedMs(task);
+    const duration = formatDuration(taskNetDuration(task));
+    if (duration) {
+      const el = document.createElement('span');
+      el.className   = 'card-time duracion';
+      el.textContent = '⏱ Tiempo total: ' + duration;
+      textBlock.appendChild(el);
+    }
+    if (bMs > 0) {
+      const bDur = formatDuration(bMs);
+      if (bDur) {
+        const el = document.createElement('span');
+        el.className   = 'card-time bloqueado';
+        el.textContent = '🚫 Tiempo bloqueado: ' + bDur;
+        textBlock.appendChild(el);
+      }
+    }
   }
 
   const ts = document.createElement('span');
@@ -254,15 +299,19 @@ function createCardElement(task) {
       const list = document.createElement('ul');
       list.className = 'subtasks-list';
       visibleSubs.forEach(sub => {
+        const isBlocked = !!sub.blocked;
         const li = document.createElement('li');
-        li.className = 'subtask-item' + (sub.completed ? ' subtask-done' : '');
+        li.className = 'subtask-item'
+          + (sub.completed ? ' subtask-done' : '')
+          + (isBlocked    ? ' subtask-blocked-item' : '');
 
         const chk = document.createElement('input');
         chk.type      = 'checkbox';
         chk.className = 'subtask-checkbox';
         chk.checked   = !!sub.completed;
-        chk.disabled  = isDone;
-        if (!isDone) chk.addEventListener('change', () => toggleSubtask(task.id, sub.id, chk.checked));
+        chk.disabled  = isDone || isBlocked;
+        if (!isDone && !isBlocked)
+          chk.addEventListener('change', () => toggleSubtask(task.id, sub.id, chk.checked));
 
         const lbl = document.createElement('span');
         lbl.className   = 'subtask-label';
@@ -271,7 +320,25 @@ function createCardElement(task) {
         li.appendChild(chk);
         li.appendChild(lbl);
 
-        if (!isDone) {
+        if (isBlocked && sub.blocked_at) {
+          const blockedSince = document.createElement('span');
+          blockedSince.className   = 'subtask-blocked-since';
+          blockedSince.textContent = '🚫 Bloqueada desde: ' + formatFecha(Number(sub.blocked_at));
+          li.appendChild(blockedSince);
+        }
+
+        if (!isDone && !sub.completed) {
+          // Botón de bloquear / desbloquear
+          const btnBlock = document.createElement('button');
+          btnBlock.className = 'subtask-block-btn' + (isBlocked ? ' active' : '');
+          btnBlock.title     = isBlocked ? 'Quitar bloqueo' : 'Marcar como bloqueada';
+          btnBlock.textContent = isBlocked ? '🔓' : '🔒';
+          btnBlock.addEventListener('click', () => {
+            if (isBlocked) unblockSubtask(sub.id);
+            else           blockSubtask(sub.id);
+          });
+          li.appendChild(btnBlock);
+
           const del = document.createElement('button');
           del.className   = 'subtask-delete';
           del.textContent = '×';
@@ -415,11 +482,17 @@ function renderUnidades(data) {
     bloque.className = 'asignacion-bloque';
     bloque.dataset.unidad = unidad;
 
+    const totalMs = list.filter(t => t.hora_fin).reduce((sum, t) => sum + taskNetDuration(t), 0);
+    const durStr = formatDuration(totalMs);
+    const durTag = durStr
+      ? ` <span class="header-duracion">⏱ ${durStr} en completadas</span>`
+      : '';
+
     const header = document.createElement('div');
     header.className = 'asignacion-header unidad-header';
     header.innerHTML =
       `<span class="asignacion-nombre">🏢 ${escapeHtml(unidad)}</span>` +
-      `<span class="asignacion-count">${list.length} tarea${list.length !== 1 ? 's' : ''}</span>`;
+      `<span class="asignacion-count">${list.length} tarea${list.length !== 1 ? 's' : ''}${durTag}</span>`;
     bloque.appendChild(header);
 
     const tabla = document.createElement('table');
@@ -430,6 +503,7 @@ function renderUnidades(data) {
         <th>Persona Asignada</th>
         <th>Estado</th>
         <th>Subtareas</th>
+        <th>Tiempo Total</th>
       </tr></thead>`;
 
     const tbody = document.createElement('tbody');
@@ -449,11 +523,23 @@ function renderUnidades(data) {
              </div>
            </div>`;
 
+      const netDur = t.hora_fin ? formatDuration(taskNetDuration(t)) : null;
+      const bMs    = t.hora_fin ? taskBlockedMs(t) : 0;
+      const timeCell = netDur
+        ? `<div class="unidad-time-cell">
+             <span class="duracion-badge">⏱ ${netDur}</span>
+             ${bMs > 0 ? `<span class="blocked-badge">🚫 ${formatDuration(bMs)}</span>` : ''}
+           </div>`
+        : '<span class="sin-dato">—</span>';
+
+      const hasBlocked = (t.subtasks || []).some(s => s.blocked);
+      const blockedBadge = hasBlocked ? ' <span class="task-blocked-badge">🚫 Bloqueada</span>' : '';
       tr.innerHTML = `
-        <td>${escapeHtml(t.title)}${priorityBadge}</td>
+        <td>${escapeHtml(t.title)}${priorityBadge}${blockedBadge}</td>
         <td>${t.assignee ? `<span class="unidad-assignee">${escapeHtml(t.assignee)}</span>` : '<span class="sin-dato">—</span>'}</td>
         <td><span class="estado-badge estado-${t.status}">${COL_LABEL[t.status] || t.status}</span></td>
-        <td>${subtasksCell}</td>`;
+        <td>${subtasksCell}</td>
+        <td>${timeCell}</td>`;
 
       tr.title = 'Ir a la tarea en el tablero';
       tr.addEventListener('click', () => scrollToCard(t.id));
@@ -486,11 +572,17 @@ function renderAsignaciones(data) {
     bloque.className = 'asignacion-bloque';
     bloque.dataset.assignee = assignee;
 
+    const totalMs = list.filter(t => t.hora_fin).reduce((sum, t) => sum + taskNetDuration(t), 0);
+    const durStr = formatDuration(totalMs);
+    const durTag = durStr
+      ? ` <span class="header-duracion">⏱ ${durStr} en completadas</span>`
+      : '';
+
     const header = document.createElement('div');
     header.className = 'asignacion-header';
     header.innerHTML =
       `<span class="asignacion-nombre">👤 ${escapeHtml(assignee)}</span>` +
-      `<span class="asignacion-count">${list.length} tarea${list.length !== 1 ? 's' : ''}</span>`;
+      `<span class="asignacion-count">${list.length} tarea${list.length !== 1 ? 's' : ''}${durTag}</span>`;
     bloque.appendChild(header);
 
     const tabla = document.createElement('table');
@@ -502,6 +594,7 @@ function renderAsignaciones(data) {
         <th>Estado</th>
         <th>Inicio en Progreso</th>
         <th>Fecha Completado</th>
+        <th>Tiempo Total</th>
       </tr></thead>`;
     const tbody = document.createElement('tbody');
     list.forEach(t => {
@@ -509,12 +602,15 @@ function renderAsignaciones(data) {
       const priorityBadge = t.priority
         ? ' <span class="priority-badge">⚠️ PRIORIDAD</span>'
         : '';
+      const hasBlocked = (t.subtasks || []).some(s => s.blocked);
+      const blockedBadge = hasBlocked ? ' <span class="task-blocked-badge">🚫 Bloqueada</span>' : '';
       tr.innerHTML = `
-        <td>${escapeHtml(t.title)}${priorityBadge}</td>
+        <td>${escapeHtml(t.title)}${priorityBadge}${blockedBadge}</td>
         <td>${t.unidad_residencial ? escapeHtml(t.unidad_residencial) : '<span class="sin-dato">—</span>'}</td>
         <td><span class="estado-badge estado-${t.status}">${COL_LABEL[t.status] || t.status}</span></td>
         <td>${t.hora_inicio ? formatFecha(t.hora_inicio) : '<span class="sin-dato">—</span>'}</td>
-        <td>${t.hora_fin    ? formatFecha(t.hora_fin)    : '<span class="sin-dato">—</span>'}</td>`;
+        <td>${t.hora_fin    ? formatFecha(t.hora_fin)    : '<span class="sin-dato">—</span>'}</td>
+        <td>${t.hora_fin ? (() => { const d = formatDuration(taskNetDuration(t)); return d ? `<span class="duracion-badge">⏱ ${d}</span>` : '<span class="sin-dato">—</span>'; })() : '<span class="sin-dato">—</span>'}</td>`;
       tr.title = 'Ir a la tarea en el tablero';
       tr.addEventListener('click', () => scrollToCard(t.id));
       tbody.appendChild(tr);
@@ -680,6 +776,20 @@ async function toggleSubtask(_taskId, subtaskId, completed) {
 
 async function deleteSubtask(_taskId, subtaskId) {
   await apiFetch(`/subtasks/${subtaskId}`, { method: 'DELETE' });
+}
+
+async function blockSubtask(subtaskId) {
+  await apiFetch(`/subtasks/${subtaskId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ blocked: 1 })
+  });
+}
+
+async function unblockSubtask(subtaskId) {
+  await apiFetch(`/subtasks/${subtaskId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ blocked: 0 })
+  });
 }
 
 /* ------------------------------------------------------------------
@@ -848,6 +958,71 @@ function openTeamLoadChart() {
   });
 }
 
+let _unidadesTimeChart = null;
+
+function openUnidadesTimeChart() {
+  const byUnit = {};
+  tasks.forEach(t => {
+    if (!t.unidad_residencial || !t.hora_fin) return;
+    if (!byUnit[t.unidad_residencial]) byUnit[t.unidad_residencial] = 0;
+    byUnit[t.unidad_residencial] += taskNetDuration(t);
+  });
+
+  const entries = Object.entries(byUnit)
+    .filter(([, ms]) => ms > 0)
+    .sort(([, a], [, b]) => b - a);
+
+  if (entries.length === 0) { alert('No hay tareas completadas con tiempo registrado.'); return; }
+
+  if (_unidadesTimeChart) { _unidadesTimeChart.destroy(); _unidadesTimeChart = null; }
+
+  const modal = document.getElementById('modal-unidades-time');
+  modal.hidden = false;
+
+  const labels = entries.map(([u]) => u);
+  const dataHrs = entries.map(([, ms]) => Math.round(ms / 60000) / 60); // hours with decimals
+
+  const ctx = document.getElementById('chart-unidades-time').getContext('2d');
+  _unidadesTimeChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Horas activas (sin bloqueos)',
+        data: dataHrs,
+        backgroundColor: labels.map((_, i) => `hsl(${200 + i * 28}, 72%, 52%)`),
+        borderColor: '#0a0a0a',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: {
+            font: { weight: '700' },
+            callback: v => v < 1 ? `${Math.round(v * 60)}m` : `${v.toFixed(1)}h`
+          }
+        },
+        y: { ticks: { font: { weight: '700', size: 12 } } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const ms = entries[ctx.dataIndex][1];
+              return '  ' + (formatDuration(ms) || '< 1 min');
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
 /* ------------------------------------------------------------------
    Informes completados
 ------------------------------------------------------------------ */
@@ -857,25 +1032,45 @@ async function fetchInformes() {
   } catch (e) { console.error('Error cargando informes', e); }
 }
 
+let informesAdminMode = false;
+let informesFilter    = 'all'; // 'all' | 'done' | 'pending'
+
 function renderInformes(data) {
   const container = document.getElementById('informes-container');
   container.innerHTML = '';
   const filterQ = document.getElementById('filter-informes')?.value.trim().toLowerCase() || '';
+
   if (!data || data.length === 0) {
     container.innerHTML = '<p class="empty-message">Sin informes registrados aún.</p>';
     return;
   }
-  data.forEach(inf => {
+
+  const visible = data.filter(inf => {
+    if (informesFilter === 'done'    && !inf.completed) return false;
+    if (informesFilter === 'pending' &&  inf.completed) return false;
+    if (filterQ && !inf.title.toLowerCase().includes(filterQ)) return false;
+    return true;
+  });
+
+  if (visible.length === 0) {
+    container.innerHTML = '<p class="empty-message">Sin resultados.</p>';
+    return;
+  }
+
+  visible.forEach(inf => {
     const item = document.createElement('div');
     item.className = 'informe-item' + (inf.completed ? ' informe-done' : '');
 
     const checkbox = document.createElement('input');
-    checkbox.type    = 'checkbox';
-    checkbox.checked = !!inf.completed;
+    checkbox.type      = 'checkbox';
+    checkbox.checked   = !!inf.completed;
     checkbox.className = 'informe-checkbox';
-    checkbox.addEventListener('change', async () => {
-      await apiFetch(`/informes/${inf.id}/toggle`, { method: 'PATCH' });
-    });
+    checkbox.disabled  = !informesAdminMode;
+    if (informesAdminMode) {
+      checkbox.addEventListener('change', async () => {
+        await apiFetch(`/informes/${inf.id}/toggle`, { method: 'PATCH' });
+      });
+    }
 
     const label = document.createElement('span');
     label.className   = 'informe-title';
@@ -886,19 +1081,21 @@ function renderInformes(data) {
     const d = new Date(inf.created_at);
     meta.textContent = d.toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
 
-    const delBtn = document.createElement('button');
-    delBtn.className   = 'informe-delete';
-    delBtn.textContent = '✕';
-    delBtn.title       = 'Eliminar informe';
-    delBtn.addEventListener('click', async () => {
-      await apiFetch(`/informes/${inf.id}`, { method: 'DELETE' });
-    });
-
     item.appendChild(checkbox);
     item.appendChild(label);
     item.appendChild(meta);
-    item.appendChild(delBtn);
-    if (filterQ && !inf.title.toLowerCase().includes(filterQ)) item.style.display = 'none';
+
+    if (informesAdminMode) {
+      const delBtn = document.createElement('button');
+      delBtn.className   = 'informe-delete';
+      delBtn.textContent = '✕';
+      delBtn.title       = 'Eliminar informe';
+      delBtn.addEventListener('click', async () => {
+        await apiFetch(`/informes/${inf.id}`, { method: 'DELETE' });
+      });
+      item.appendChild(delBtn);
+    }
+
     container.appendChild(item);
   });
 }
@@ -947,6 +1144,131 @@ document.getElementById('informe-add-btn').addEventListener('click', addInforme)
 document.getElementById('informe-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') addInforme();
 });
+
+// Filter tabs
+document.getElementById('informes-filter-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.inf-tab');
+  if (!btn) return;
+  informesFilter = btn.dataset.filter;
+  document.querySelectorAll('.inf-tab').forEach(b => b.classList.toggle('active', b === btn));
+  fetchInformes();
+});
+
+// Admin mode toggle
+document.getElementById('btn-informes-admin').addEventListener('click', () => {
+  if (informesAdminMode) {
+    informesAdminMode = false;
+    document.getElementById('btn-informes-admin').textContent = '🔐 Admin';
+    fetchInformes();
+    return;
+  }
+  const bar = document.getElementById('informes-admin-bar');
+  bar.hidden = !bar.hidden;
+  if (!bar.hidden) document.getElementById('informes-admin-key').focus();
+});
+
+async function tryInformesAdmin() {
+  const key     = document.getElementById('informes-admin-key').value;
+  const errorEl = document.getElementById('informes-admin-error');
+  try {
+    await apiFetch('/admin/verify', { method: 'POST', body: JSON.stringify({ key }) });
+    informesAdminMode = true;
+    document.getElementById('informes-admin-bar').hidden = true;
+    document.getElementById('informes-admin-key').value  = '';
+    errorEl.hidden = true;
+    document.getElementById('btn-informes-admin').textContent = '🔓 Salir admin';
+    fetchInformes();
+  } catch {
+    errorEl.hidden = false;
+    document.getElementById('informes-admin-key').select();
+  }
+}
+
+document.getElementById('informes-admin-confirm').addEventListener('click', tryInformesAdmin);
+document.getElementById('informes-admin-key').addEventListener('keydown', e => {
+  if (e.key === 'Enter')  tryInformesAdmin();
+  if (e.key === 'Escape') {
+    document.getElementById('informes-admin-bar').hidden = true;
+    document.getElementById('informes-admin-error').hidden = true;
+  }
+});
+document.getElementById('informes-admin-cancel').addEventListener('click', () => {
+  document.getElementById('informes-admin-bar').hidden = true;
+  document.getElementById('informes-admin-error').hidden = true;
+});
+
+document.getElementById('btn-populate-informes').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-populate-informes');
+  btn.disabled = true;
+  btn.textContent = 'Cargando...';
+  try {
+    const { inserted, skipped } = await apiFetch('/informes/populate-from-unidades', { method: 'POST' });
+    btn.textContent = `✓ ${inserted} agregados, ${skipped} ya existían`;
+    setTimeout(() => { btn.textContent = '📋 Cargar desde lista'; btn.disabled = false; }, 3000);
+  } catch {
+    btn.textContent = 'Error al cargar';
+    setTimeout(() => { btn.textContent = '📋 Cargar desde lista'; btn.disabled = false; }, 3000);
+  }
+});
+
+let _informesChart = null;
+
+function openInformesChart() {
+  const allInformes = Array.from(
+    document.getElementById('informes-container').querySelectorAll('.informe-item')
+  );
+  // Fetch counts from the live data via the last render
+  let done = 0, pending = 0;
+  allInformes.forEach(el => {
+    const chk = el.querySelector('.informe-checkbox');
+    if (!chk) return;
+    if (chk.checked) done++; else pending++;
+  });
+  const total = done + pending;
+  if (total === 0) { alert('No hay informes registrados aún.'); return; }
+
+  if (_informesChart) { _informesChart.destroy(); _informesChart = null; }
+
+  const modal = document.getElementById('modal-informes-chart');
+  modal.hidden = false;
+
+  const pctDone    = Math.round((done    / total) * 100);
+  const pctPending = Math.round((pending / total) * 100);
+
+  const stats = document.getElementById('informes-chart-stats');
+  stats.innerHTML =
+    `<span class="ichart-stat done">✅ Completados: <strong>${done}</strong> (${pctDone}%)</span>` +
+    `<span class="ichart-stat pending">⏳ Pendientes: <strong>${pending}</strong> (${pctPending}%)</span>`;
+
+  const ctx = document.getElementById('chart-informes').getContext('2d');
+  _informesChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: [`Completados ${pctDone}%`, `Pendientes ${pctPending}%`],
+      datasets: [{
+        data: [done, pending],
+        backgroundColor: ['#00E676', '#FFE600'],
+        borderColor: '#0a0a0a',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { weight: '700', size: 13 }, padding: 18 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const val = ctx.parsed;
+              const pct = Math.round((val / total) * 100);
+              return `  ${ctx.label.split(' ')[0]}: ${val} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
 
 /* ------------------------------------------------------------------
    Reinicio admin

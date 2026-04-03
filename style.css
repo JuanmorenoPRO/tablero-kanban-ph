@@ -376,8 +376,10 @@ h1 {
   font-weight: 700;
   padding: 1px 0;
 }
-.card-time.inicio { color: var(--blue); }
-.card-time.fin    { color: #008a40; }
+.card-time.inicio   { color: var(--blue); }
+.card-time.fin      { color: #008a40; }
+.card-time.duracion  { color: #7c5c00; font-style: italic; }
+.card-time.bloqueado { color: #b45309; font-style: italic; }
 
 .card-timestamp {
   font-size: 0.7rem;
@@ -510,6 +512,19 @@ h1 {
   color: var(--white);
   border-radius: 20px;
   padding: 2px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-duracion {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #fff8e1;
+  color: #7c5c00;
+  border: 1px solid #ffe082;
+  border-radius: 12px;
+  padding: 1px 8px;
 }
 
 .asignacion-tabla {
@@ -555,6 +570,49 @@ h1 {
 .estado-done       { background: var(--green);  }
 
 .sin-dato { color: #bbb; font-weight: 600; }
+
+.duracion-badge {
+  display: inline-block;
+  background: #fff8e1;
+  color: #7c5c00;
+  border: 1px solid #ffe082;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.task-blocked-badge {
+  display: inline-block;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.blocked-badge {
+  display: inline-block;
+  background: #fff1f0;
+  color: #b45309;
+  border: 1px solid #fca5a5;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.unidad-time-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
 
 /* === ADMIN ZONE === */
 .admin-zone {
@@ -846,6 +904,80 @@ h1 {
 }
 .informe-delete:hover { background: #333; }
 
+.informe-checkbox:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* === INFORMES FILTER TABS === */
+.informes-filter-tabs {
+  display: flex;
+  gap: 4px;
+}
+.inf-tab {
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 7px 13px;
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  background: var(--white);
+  cursor: pointer;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+.inf-tab.active       { background: var(--black); color: var(--white); }
+.inf-tab:not(.active):hover { background: #f0f0f0; }
+
+/* === INFORMES ADMIN === */
+.btn-informes-admin {
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 900;
+  padding: 9px 14px;
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  background: var(--white);
+  box-shadow: 3px 3px 0 var(--black);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.btn-informes-admin:hover  { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--black); }
+.btn-informes-admin:active { transform: translate(2px,2px);  box-shadow: 1px 1px 0 var(--black); }
+
+.informes-admin-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.informes-admin-bar input[type="password"] {
+  font-family: var(--font);
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 8px 12px;
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  box-shadow: 2px 2px 0 var(--black);
+  outline: none;
+  width: 200px;
+}
+.informes-admin-bar button {
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 8px 14px;
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  background: var(--white);
+  cursor: pointer;
+}
+.informes-admin-bar button:first-of-type { background: var(--black); color: var(--white); }
+.informes-admin-error {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #b91c1c;
+}
+
 /* === CHART BUTTONS === */
 .btn-chart-global {
   background: var(--orange) !important;
@@ -872,6 +1004,42 @@ h1 {
   transform: translate(2px,2px);
   box-shadow: 1px 1px 0 var(--black);
 }
+
+/* === POPULATE INFORMES BUTTON === */
+.btn-populate-informes {
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 900;
+  padding: 9px 16px;
+  background: var(--white);
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  box-shadow: 3px 3px 0 var(--black);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.btn-populate-informes:hover  { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--black); }
+.btn-populate-informes:active { transform: translate(2px,2px);  box-shadow: 1px 1px 0 var(--black); }
+.btn-populate-informes:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: 3px 3px 0 var(--black); }
+
+/* === INFORMES CHART STATS === */
+.informes-chart-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.ichart-stat {
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  border: 2px solid var(--black);
+}
+.ichart-stat.done    { background: #e6fff3; }
+.ichart-stat.pending { background: #fffde7; }
 
 /* === CHART MODALS === */
 .chart-modal {
@@ -904,6 +1072,18 @@ h1 {
 }
 .chart-modal-wide {
   max-width: 720px;
+}
+.chart-modal-informes {
+  max-width: 560px;
+  max-height: 95vh;
+}
+.chart-modal-informes .chart-modal-body {
+  padding: 28px 32px 32px;
+  flex-direction: column;
+  gap: 20px;
+}
+.chart-modal-informes canvas {
+  max-height: 380px;
 }
 .chart-modal-header {
   display: flex;
@@ -1250,6 +1430,46 @@ h1 {
   outline: none;
 }
 .subtask-input:focus { box-shadow: 2px 2px 0 var(--black); }
+
+/* === SUBTAREA BLOQUEADA === */
+.subtask-blocked-item {
+  flex-wrap: wrap;
+  background: #fff8e1;
+  border-radius: 4px;
+  border-left: 3px solid #f59e0b;
+  padding-left: 4px;
+  row-gap: 2px;
+}
+.subtask-blocked-item .subtask-label {
+  color: #92400e;
+}
+.subtask-blocked-since {
+  width: 100%;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #b45309;
+  padding-left: 2px;
+}
+.subtask-block-btn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  font-size: 0.75rem;
+  border: 1.5px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  padding: 0;
+  opacity: 0;
+}
+.subtask-item:hover .subtask-block-btn       { opacity: 1; border-color: #d97706; background: #fef3c7; }
+.subtask-block-btn:hover                     { background: #fde68a !important; border-color: #b45309 !important; }
+.subtask-block-btn.active                    { opacity: 1; background: #f59e0b; border-color: #92400e; }
+
 
 /* === RESPONSIVE === */
 @media (max-width: 800px) {
