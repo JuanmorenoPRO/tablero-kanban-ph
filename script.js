@@ -352,21 +352,29 @@ function toggleAssignForm(card) {
 /* ------------------------------------------------------------------
    Renderizado del tablero
 ------------------------------------------------------------------ */
+const colFilters = { todo: { query: '', priority: false }, inprogress: { query: '', priority: false }, done: { query: '', priority: false } };
+
 function getSearchQuery() {
   return document.getElementById('search-input').value.trim().toLowerCase();
 }
 
 function renderBoard() {
-  const query = getSearchQuery();
+  const globalQuery = getSearchQuery();
   COLUMNS.forEach(col => {
     const container = document.querySelector(`.cards[data-col="${col}"]`);
     container.innerHTML = '';
+    const { query: colQuery, priority: onlyPriority } = colFilters[col];
     const visible = tasks
       .filter(t => t.status === col)
-      .filter(t => !query ||
-        t.title.toLowerCase().includes(query) ||
-        (t.unidad_residencial || '').toLowerCase().includes(query) ||
-        (t.assignee || '').toLowerCase().includes(query));
+      .filter(t => !globalQuery ||
+        t.title.toLowerCase().includes(globalQuery) ||
+        (t.unidad_residencial || '').toLowerCase().includes(globalQuery) ||
+        (t.assignee || '').toLowerCase().includes(globalQuery))
+      .filter(t => !colQuery ||
+        t.title.toLowerCase().includes(colQuery) ||
+        (t.unidad_residencial || '').toLowerCase().includes(colQuery) ||
+        (t.assignee || '').toLowerCase().includes(colQuery))
+      .filter(t => !onlyPriority || t.priority);
 
     if (visible.length === 0) {
       const el = document.createElement('p');
@@ -663,6 +671,22 @@ document.getElementById('task-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') addTask();
 });
 document.getElementById('search-input').addEventListener('input', renderBoard);
+
+document.querySelectorAll('.col-search').forEach(input => {
+  input.addEventListener('input', () => {
+    colFilters[input.dataset.col].query = input.value.trim().toLowerCase();
+    renderBoard();
+  });
+});
+
+document.querySelectorAll('.col-priority-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const col = btn.dataset.col;
+    colFilters[col].priority = !colFilters[col].priority;
+    btn.classList.toggle('col-priority-btn-active', colFilters[col].priority);
+    renderBoard();
+  });
+});
 
 /* --- section filters (client-side, no re-fetch needed) --- */
 function applyFilter(inputId, container, attrName) {

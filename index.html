@@ -41,16 +41,28 @@
   <main class="board">
     <div class="column" id="col-todo">
       <div class="column-header">Pendiente</div>
+      <div class="col-filters">
+        <input type="text" class="col-search" data-col="todo" placeholder="Buscar..." />
+        <button class="col-priority-btn" data-col="todo" title="Solo prioritarias">⚠️</button>
+      </div>
       <div class="cards" data-col="todo"></div>
     </div>
 
     <div class="column" id="col-inprogress">
       <div class="column-header">En Progreso</div>
+      <div class="col-filters">
+        <input type="text" class="col-search" data-col="inprogress" placeholder="Buscar..." />
+        <button class="col-priority-btn" data-col="inprogress" title="Solo prioritarias">⚠️</button>
+      </div>
       <div class="cards" data-col="inprogress"></div>
     </div>
 
     <div class="column" id="col-done">
       <div class="column-header">Completado</div>
+      <div class="col-filters">
+        <input type="text" class="col-search" data-col="done" placeholder="Buscar..." />
+        <button class="col-priority-btn" data-col="done" title="Solo prioritarias">⚠️</button>
+      </div>
       <div class="cards" data-col="done"></div>
     </div>
   </main>
