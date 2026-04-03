@@ -1375,11 +1375,29 @@ document.getElementById('btn-restore-confirm').addEventListener('click', async (
     errorEl.hidden = false;
     return;
   }
+  const confirmBtn = document.getElementById('btn-restore-confirm');
+  const cancelBtn  = document.querySelector('#modal-restore .btn-reset-cancel');
+  confirmBtn.disabled = true;
+  cancelBtn.disabled  = true;
+  confirmBtn.textContent = '⏳ Restaurando...';
+
+  const dots = ['⏳ Restaurando.', '⏳ Restaurando..', '⏳ Restaurando...'];
+  let dotIdx = 0;
+  const ticker = setInterval(() => {
+    confirmBtn.textContent = dots[dotIdx++ % dots.length];
+  }, 500);
+
   try {
     await apiFetch('/admin/restore', { method: 'POST', body: JSON.stringify({ key, backup }) });
+    clearInterval(ticker);
+    confirmBtn.textContent = '✅ Restaurado';
     successEl.hidden = false;
     setTimeout(closeRestoreModal, 1500);
   } catch (err) {
+    clearInterval(ticker);
+    confirmBtn.textContent = 'Restaurar';
+    confirmBtn.disabled = false;
+    cancelBtn.disabled  = false;
     errorEl.textContent = err.message.includes('401') ? 'Clave incorrecta.' : 'Error al restaurar el backup.';
     errorEl.hidden = false;
     document.getElementById('restore-admin-key').select();

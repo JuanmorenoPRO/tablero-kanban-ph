@@ -385,26 +385,51 @@ app.post('/admin/restore', async (req, res) => {
       await client.query('SELECT setval(pg_get_serial_sequence(\'subtasks\',\'id\'), 1, false)');
       await client.query('SELECT setval(pg_get_serial_sequence(\'informes\',\'id\'), 1, false)');
 
-      for (const t of backup.tasks) {
+      // Bulk insert tasks
+      if (backup.tasks.length) {
+        const tVals = [], tParams = [];
+        backup.tasks.forEach((t, i) => {
+          const b = i * 9;
+          tVals.push(`($${b+1},$${b+2},$${b+3},$${b+4},$${b+5},$${b+6},$${b+7},$${b+8},$${b+9})`);
+          tParams.push(t.id, t.title, t.status, t.assignee, t.unidad_residencial,
+            t.hora_inicio ?? null, t.hora_fin ?? null, t.priority, t.created_at);
+        });
         await client.query(
-          `INSERT INTO tasks (id,title,status,assignee,unidad_residencial,hora_inicio,hora_fin,priority,created_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-          [t.id, t.title, t.status, t.assignee, t.unidad_residencial,
-           t.hora_inicio ?? null, t.hora_fin ?? null, t.priority, t.created_at]
+          `INSERT INTO tasks (id,title,status,assignee,unidad_residencial,hora_inicio,hora_fin,priority,created_at) VALUES ${tVals.join(',')}`,
+          tParams
         );
       }
-      for (const s of (backup.subtasks || [])) {
+
+      // Bulk insert subtasks (chunk to avoid hitting pg param limit of 65535)
+      const subs = backup.subtasks || [];
+      const CHUNK = 500;
+      for (let start = 0; start < subs.length; start += CHUNK) {
+        const chunk = subs.slice(start, start + CHUNK);
+        const sVals = [], sParams = [];
+        chunk.forEach((s, i) => {
+          const b = i * 9;
+          sVals.push(`($${b+1},$${b+2},$${b+3},$${b+4},$${b+5},$${b+6},$${b+7},$${b+8},$${b+9})`);
+          sParams.push(s.id, s.task_id, s.title, s.completed, s.blocked ?? 0,
+            s.blocked_comment ?? null, s.blocked_at ?? null, s.total_blocked_ms ?? 0, s.created_at);
+        });
         await client.query(
-          `INSERT INTO subtasks (id,task_id,title,completed,blocked,blocked_comment,blocked_at,total_blocked_ms,created_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-          [s.id, s.task_id, s.title, s.completed, s.blocked ?? 0,
-           s.blocked_comment ?? null, s.blocked_at ?? null, s.total_blocked_ms ?? 0, s.created_at]
+          `INSERT INTO subtasks (id,task_id,title,completed,blocked,blocked_comment,blocked_at,total_blocked_ms,created_at) VALUES ${sVals.join(',')}`,
+          sParams
         );
       }
-      for (const i of (backup.informes || [])) {
+
+      // Bulk insert informes
+      const infs = backup.informes || [];
+      if (infs.length) {
+        const iVals = [], iParams = [];
+        infs.forEach((inf, i) => {
+          const b = i * 4;
+          iVals.push(`($${b+1},$${b+2},$${b+3},$${b+4})`);
+          iParams.push(inf.id, inf.title, inf.completed, inf.created_at);
+        });
         await client.query(
-          'INSERT INTO informes (id,title,completed,created_at) VALUES ($1,$2,$3,$4)',
-          [i.id, i.title, i.completed, i.created_at]
+          `INSERT INTO informes (id,title,completed,created_at) VALUES ${iVals.join(',')}`,
+          iParams
         );
       }
 
