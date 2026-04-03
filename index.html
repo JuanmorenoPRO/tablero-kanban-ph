@@ -109,6 +109,28 @@
   <div class="admin-zone">
     <button id="btn-reset-all" class="btn-reset-all">⚠️ Reiniciar todas las tareas</button>
     <button id="btn-seed" class="btn-seed">📥 Poblar tareas</button>
+    <button id="btn-dedup" class="btn-dedup">🧹 Eliminar duplicados</button>
+  </div>
+
+  <!-- Modal: Eliminar duplicados -->
+  <div id="modal-dedup" class="chart-modal" hidden>
+    <div class="chart-modal-overlay" onclick="closeDedupModal()"></div>
+    <div class="chart-modal-box reset-modal-box">
+      <div class="chart-modal-header">
+        <h3>Eliminar tareas duplicadas</h3>
+        <button class="chart-modal-close" onclick="closeDedupModal()">✕</button>
+      </div>
+      <div class="chart-modal-body reset-modal-body">
+        <p class="reset-modal-desc">Se eliminará cualquier tarea duplicada (mismo nombre y misma unidad residencial), conservando solo la primera creada. Ingresa la clave de administrador.</p>
+        <input type="password" id="dedup-admin-key" class="reset-key-input" placeholder="Clave de administrador..." />
+        <p id="dedup-error" class="reset-error" hidden>Clave incorrecta. Intenta de nuevo.</p>
+        <p id="dedup-success" class="seed-success" hidden></p>
+        <div class="reset-modal-actions">
+          <button id="btn-dedup-confirm" class="btn-reset-confirm">Eliminar duplicados</button>
+          <button class="btn-reset-cancel" onclick="closeDedupModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Modal: Poblar tareas -->

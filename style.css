@@ -517,6 +517,29 @@ h1 {
   justify-content: center;
 }
 
+.btn-dedup {
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 900;
+  padding: 11px 28px;
+  background: #1a1a1a;
+  color: #FFE600;
+  border: 3px solid #FFE600;
+  border-radius: var(--radius);
+  box-shadow: 3px 3px 0 #FFE600;
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+  letter-spacing: 0.3px;
+}
+.btn-dedup:hover {
+  transform: translate(-1px,-1px);
+  box-shadow: 4px 4px 0 #FFE600;
+}
+.btn-dedup:active {
+  transform: translate(2px,2px);
+  box-shadow: 1px 1px 0 #FFE600;
+}
+
 .btn-seed {
   font-family: var(--font);
   font-size: 0.9rem;

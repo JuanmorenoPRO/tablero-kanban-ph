@@ -947,6 +947,69 @@ document.getElementById('btn-reset-confirm').addEventListener('click', async () 
 });
 
 /* ------------------------------------------------------------------
+   Eliminar duplicados admin
+------------------------------------------------------------------ */
+function closeDedupModal() {
+  document.getElementById('modal-dedup').hidden = true;
+  document.getElementById('dedup-admin-key').value = '';
+  document.getElementById('dedup-error').hidden = true;
+  document.getElementById('dedup-success').hidden = true;
+  document.getElementById('btn-dedup-confirm').disabled = false;
+  document.getElementById('btn-dedup-confirm').textContent = 'Eliminar duplicados';
+}
+
+document.getElementById('btn-dedup').addEventListener('click', () => {
+  document.getElementById('modal-dedup').hidden = false;
+  document.getElementById('dedup-admin-key').focus();
+});
+
+document.getElementById('dedup-admin-key').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-dedup-confirm').click();
+  if (e.key === 'Escape') closeDedupModal();
+});
+
+document.getElementById('btn-dedup-confirm').addEventListener('click', async () => {
+  const key       = document.getElementById('dedup-admin-key').value;
+  const errorEl   = document.getElementById('dedup-error');
+  const successEl = document.getElementById('dedup-success');
+  const confirmBtn = document.getElementById('btn-dedup-confirm');
+
+  errorEl.hidden = true;
+  successEl.hidden = true;
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Eliminando...';
+
+  try {
+    const res  = await fetch('/admin/dedup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key })
+    });
+    const data = await res.json();
+    if (res.status === 401) {
+      errorEl.textContent = 'Clave incorrecta. Intenta de nuevo.';
+      errorEl.hidden = false;
+      document.getElementById('dedup-admin-key').select();
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Eliminar duplicados';
+      return;
+    }
+    if (!res.ok) throw new Error('Server error');
+    successEl.textContent = data.deleted > 0
+      ? `✓ ${data.deleted} tarea${data.deleted !== 1 ? 's' : ''} duplicada${data.deleted !== 1 ? 's' : ''} eliminada${data.deleted !== 1 ? 's' : ''}.`
+      : '✓ No se encontraron duplicados.';
+    successEl.hidden = false;
+    confirmBtn.textContent = '✓ Listo';
+    setTimeout(closeDedupModal, 2500);
+  } catch (e) {
+    errorEl.textContent = 'Error al conectar con el servidor.';
+    errorEl.hidden = false;
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Eliminar duplicados';
+  }
+});
+
+/* ------------------------------------------------------------------
    Poblar tareas admin
 ------------------------------------------------------------------ */
 function closeSeedModal() {

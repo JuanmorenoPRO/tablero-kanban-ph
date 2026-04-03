@@ -304,16 +304,22 @@ app.post('/admin/seed', async (req, res) => {
 
     // Insert per-unidad in separate transactions to avoid long-running query
     (async () => {
+      // Load existing (title, unidad) pairs to skip duplicates
+      const existing = await queryAll(`SELECT title, unidad_residencial FROM tasks`);
+      const existingSet = new Set(existing.map(r => `${r.title}||${r.unidad_residencial}`));
+
       for (const unidad of unidades) {
         const client = await pool.connect();
         try {
           await client.query('BEGIN');
           for (const tarea of tareas) {
+            if (existingSet.has(`${tarea.title}||${unidad}`)) continue;
             const { rows } = await client.query(
               `INSERT INTO tasks (title, status, assignee, unidad_residencial, priority)
                VALUES ($1, 'todo', '', $2, 0) RETURNING id`,
               [tarea.title, unidad]
             );
+            existingSet.add(`${tarea.title}||${unidad}`);
             for (const sub of tarea.subtasks) {
               await client.query(
                 `INSERT INTO subtasks (task_id, title, completed) VALUES ($1, $2, 0)`,
@@ -332,6 +338,25 @@ app.post('/admin/seed', async (req, res) => {
       io.emit('refresh');
       console.log('Seed completed');
     })();
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
+});
+
+/* ── POST /admin/dedup ──────────────────────────────────────────── */
+app.post('/admin/dedup', async (req, res) => {
+  try {
+    const { key } = req.body;
+    if (key !== ADMIN_KEY) return res.status(401).json({ error: 'Clave incorrecta' });
+    const result = await pool.query(`
+      DELETE FROM tasks
+      WHERE id NOT IN (
+        SELECT MIN(id) FROM tasks GROUP BY title, unidad_residencial
+      )
+      RETURNING id
+    `);
+    const deleted = result.rowCount;
+    if (deleted > 0) await pool.query(`DELETE FROM subtasks WHERE task_id NOT IN (SELECT id FROM tasks)`);
+    res.json({ success: true, deleted });
+    io.emit('refresh');
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }
 });
 
