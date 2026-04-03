@@ -116,7 +116,6 @@ app.put('/tasks/:id', async (req, res) => {
     let hora_fin    = ex.hora_fin;
 
     if (status === 'inprogress' && !hora_inicio) hora_inicio = Date.now();
-    if (status === 'todo')                        hora_inicio = null;
     if (status === 'done')                        hora_fin    = Date.now();
     else if (ex.status === 'done')                hora_fin    = null;
 
