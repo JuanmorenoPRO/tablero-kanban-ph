@@ -6,7 +6,6 @@ const { Pool } = require('pg');
 const pg      = require('pg');
 const cors    = require('cors');
 const path    = require('path');
-const XLSX    = require('xlsx');
 
 /* ── PostgreSQL connection ──────────────────────────────────────── */
 pg.types.setTypeParser(20, val => parseInt(val, 10)); // BIGINT → JS Number
@@ -278,10 +277,11 @@ app.get('/informes', async (req, res) => {
 /* ── POST /informes ─────────────────────────────────────────────── */
 app.post('/informes', async (req, res) => {
   try {
-    const { title } = req.body;
+    const { title, key } = req.body;
+    if (key !== ADMIN_KEY) return res.status(401).json({ error: 'Clave incorrecta' });
     if (!title || !title.trim()) return res.status(400).json({ error: 'Título requerido' });
     const info = await queryOne(
-      'INSERT INTO informes (title, completed) VALUES ($1, 1) RETURNING *',
+      'INSERT INTO informes (title, completed) VALUES ($1, 0) RETURNING *',
       [title.trim()]
     );
     res.json(info);
@@ -317,10 +317,7 @@ app.post('/informes/reset-all', async (req, res) => {
 /* ── POST /informes/populate-from-unidades ──────────────────────── */
 app.post('/informes/populate-from-unidades', async (_req, res) => {
   try {
-    const wb   = XLSX.readFile('./unidades/LISTA UNIDADES PH..xlsx');
-    const ws   = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
-    const unidades = rows.slice(1).map(r => (r[2] || '').trim()).filter(Boolean);
+    const unidades = require('./unidades/unidades.json');
 
     const existing = await queryAll('SELECT title FROM informes');
     const existingSet = new Set(existing.map(r => r.title.toLowerCase()));
@@ -457,20 +454,8 @@ app.post('/admin/seed', async (req, res) => {
     const { key } = req.body;
     if (key !== ADMIN_KEY) return res.status(401).json({ error: 'Clave incorrecta' });
 
-    const wbU  = XLSX.readFile(path.join(__dirname, 'unidades', 'LISTA UNIDADES PH..xlsx'));
-    const rowsU = XLSX.utils.sheet_to_json(wbU.Sheets[wbU.SheetNames[0]], { header: 1 });
-    const unidades = rowsU.slice(1).map(r => (r[2] || '').trim()).filter(Boolean);
-
-    const wbT  = XLSX.readFile(path.join(__dirname, 'unidades', 'TAREAS.xlsx'));
-    const rowsT = XLSX.utils.sheet_to_json(wbT.Sheets[wbT.SheetNames[0]], { header: 1 });
-    const tareas = [];
-    let currentTask = null;
-    for (const row of rowsT) {
-      const taskName = (row[0] || '').trim();
-      const subName  = (row[1] || '').trim();
-      if (taskName) { currentTask = { title: taskName, subtasks: [] }; tareas.push(currentTask); }
-      if (subName && currentTask) currentTask.subtasks.push(subName);
-    }
+    const unidades = require('./unidades/unidades.json');
+    const tareas   = require('./unidades/tareas.json');
 
     // Respond immediately so Railway doesn't timeout, then insert in background
     res.json({ success: true, unidades: unidades.length, tareas: unidades.length * tareas.length, subtareas: unidades.length * tareas.reduce((a, t) => a + t.subtasks.length, 0) });

@@ -1102,10 +1102,11 @@ function renderInformes(data) {
 }
 
 async function addInforme() {
+  if (!informesAdminMode) return;
   const input = document.getElementById('informe-input');
   const title = input.value.trim();
   if (!title) return;
-  await apiFetch('/informes', { method: 'POST', body: JSON.stringify({ title }) });
+  await apiFetch('/informes', { method: 'POST', body: JSON.stringify({ title, key: informesAdminKey }) });
   input.value = '';
 }
 
@@ -1161,6 +1162,7 @@ document.getElementById('btn-informes-admin').addEventListener('click', () => {
     informesAdminMode = false;
     document.getElementById('btn-informes-admin').textContent = '🔐 Admin';
     document.getElementById('informes-admin-actions').hidden = true;
+    document.getElementById('informes-add-bar').hidden = true;
     fetchInformes();
     return;
   }
@@ -1178,6 +1180,7 @@ async function tryInformesAdmin() {
     informesAdminKey  = key;
     document.getElementById('informes-admin-bar').hidden    = true;
     document.getElementById('informes-admin-actions').hidden = false;
+    document.getElementById('informes-add-bar').hidden       = false;
     document.getElementById('informes-admin-key').value     = '';
     errorEl.hidden = true;
     document.getElementById('btn-informes-admin').textContent = '🔓 Salir admin';

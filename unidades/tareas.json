@@ -1,0 +1,57 @@
+[
+  {
+    "title": "CAUSACIONES",
+    "subtasks": [
+      "ORGANIZAR PAPELERIA",
+      "REVISAR CORREOS",
+      "REVISAR WHATSAP",
+      "DIGITAR GASTOS",
+      "REVISAR GASTOS FIJOS",
+      "FALTANTES",
+      "CUADRO RETENCION"
+    ]
+  },
+  {
+    "title": "EGRESOS",
+    "subtasks": [
+      "VALIDAR TRANSACCION",
+      "REVISAR CORREOS",
+      "REVISAR WHATSAP",
+      "SUMAR GTOS BANCARIOS",
+      "CONCILIAR SALIDAS",
+      "IMPRIMIR EGRESOS",
+      "ALIMENTAR FALTANTES",
+      "REVISAR AUX 2335"
+    ]
+  },
+  {
+    "title": "TERMINACION",
+    "subtasks": [
+      "CONCILIAR INGRESOS",
+      "REVISAR CORREOS",
+      "REVISAR WHATSAP",
+      "CONCILIACION BANCARIA",
+      "CONCILIACION CARTERA",
+      "CRUCE ANTICIPOS",
+      "CRUCE ND Y NC",
+      "REVISAR CARPETA",
+      "AJUSTE A MILES",
+      "ANEXOS",
+      "REVISAR FALTANTES",
+      "REVISAR AUX COMPLETO"
+    ]
+  },
+  {
+    "title": "FACTURACION",
+    "subtasks": [
+      "CONCILIAR INGRESOS",
+      "SUBIR PAGOS",
+      "REVISAR CORREOS",
+      "REVISAR WHATSAP",
+      "REGISTRAR NOVEDADES",
+      "IMPRIMIR",
+      "PUBLICAR",
+      "ENVIAR POR CORREO"
+    ]
+  }
+]
