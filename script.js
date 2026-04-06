@@ -570,9 +570,13 @@ function renderUnidades(data) {
   });
 }
 
+let asignacionesData = null;
+let asignacionesFilter = 'all'; // 'all' | 'inprogress' | 'todo' | 'done'
+
 async function fetchAsignaciones() {
   try {
-    renderAsignaciones(await apiFetch('/asignaciones'));
+    asignacionesData = await apiFetch('/asignaciones');
+    renderAsignaciones(asignacionesData);
   } catch (e) { console.error('Error cargando asignaciones', e); }
 }
 
@@ -586,6 +590,9 @@ function renderAsignaciones(data) {
   }
 
   data.forEach(({ assignee, tasks: list }) => {
+    const filteredList = asignacionesFilter === 'all' ? list : list.filter(t => t.status === asignacionesFilter);
+    if (filteredList.length === 0) return;
+
     const bloque = document.createElement('div');
     bloque.className = 'asignacion-bloque';
     bloque.dataset.assignee = assignee;
@@ -615,7 +622,7 @@ function renderAsignaciones(data) {
         <th>Tiempo Total</th>
       </tr></thead>`;
     const tbody = document.createElement('tbody');
-    list.forEach(t => {
+    filteredList.forEach(t => {
       const tr = document.createElement('tr');
       const priorityBadge = t.priority
         ? ' <span class="priority-badge">⚠️ PRIORIDAD</span>'
@@ -1183,12 +1190,21 @@ document.getElementById('filter-unidades').addEventListener('input', () => {
   applyFilter('filter-unidades', document.getElementById('unidades-container'), 'unidad');
 });
 
-document.querySelectorAll('.unidad-tab').forEach(btn => {
+document.querySelectorAll('#unidades-filter-tabs .unidad-tab').forEach(btn => {
   btn.addEventListener('click', () => {
     unidadesFilter = btn.dataset.filter;
-    document.querySelectorAll('.unidad-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#unidades-filter-tabs .unidad-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     if (unidadesData) renderUnidades(unidadesData);
+  });
+});
+
+document.querySelectorAll('#asignaciones-filter-tabs .unidad-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    asignacionesFilter = btn.dataset.filter;
+    document.querySelectorAll('#asignaciones-filter-tabs .unidad-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (asignacionesData) renderAsignaciones(asignacionesData);
   });
 });
 

@@ -83,6 +83,12 @@
     </div>
     <div class="section-filter-bar">
       <input type="text" id="filter-asignaciones" placeholder="🔍 Filtrar por persona..." />
+      <div class="unidades-filter-tabs" id="asignaciones-filter-tabs">
+        <button class="unidad-tab active" data-filter="all">Todas</button>
+        <button class="unidad-tab" data-filter="inprogress">En Progreso</button>
+        <button class="unidad-tab" data-filter="todo">Pendiente</button>
+        <button class="unidad-tab" data-filter="done">Completado</button>
+      </div>
       <button class="btn-chart-section" onclick="openTeamLoadChart()">📊 Carga del equipo</button>
     </div>
     <div id="asignaciones-container">
