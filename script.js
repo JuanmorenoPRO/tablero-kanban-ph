@@ -733,6 +733,7 @@ async function moveTask(id, direction) {
 }
 
 async function deleteTask(id) {
+  if (!boardAdminMode) return;
   await apiFetch(`/tasks/${id}`, { method: 'DELETE' });
 }
 
@@ -801,6 +802,7 @@ async function toggleSubtask(_taskId, subtaskId, completed) {
 }
 
 async function deleteSubtask(_taskId, subtaskId) {
+  if (!boardAdminMode) return;
   await apiFetch(`/subtasks/${subtaskId}`, { method: 'DELETE' });
 }
 

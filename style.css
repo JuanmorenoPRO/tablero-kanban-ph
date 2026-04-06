@@ -1375,9 +1375,13 @@ h1 {
   box-shadow: 7px 7px 0px #CC3333;
 }
 
-/* Priority button: only visible in admin mode */
-.btn-priority { display: none; }
-.board.admin-mode .btn-priority { display: inline-flex; }
+/* Priority and delete buttons: only visible in admin mode */
+.btn-priority,
+.btn-delete { display: none; }
+.board.admin-mode .btn-priority,
+.board.admin-mode .btn-delete { display: inline-flex; }
+.subtask-delete { display: none; }
+.board.admin-mode .subtask-delete { display: flex; }
 
 .btn-priority {
   background: #f5f5f5;
