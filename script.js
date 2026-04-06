@@ -1,6 +1,8 @@
 const COLUMNS   = ['todo', 'inprogress', 'done'];
 const COL_LABEL = { todo: 'Pendiente', inprogress: 'En Progreso', done: 'Completado' };
 let tasks = [];
+let boardAdminMode = false;
+let unidadesFilter = 'all'; // 'all' | 'inprogress' | 'todo' | 'done'
 
 /* ------------------------------------------------------------------
    API
@@ -462,10 +464,19 @@ function renderBoard() {
 /* ------------------------------------------------------------------
    Panel de asignaciones
 ------------------------------------------------------------------ */
+let unidadesData = null;
+
 async function fetchUnidades() {
   try {
-    renderUnidades(await apiFetch('/unidades'));
+    unidadesData = await apiFetch('/unidades');
+    renderUnidades(unidadesData);
   } catch (e) { console.error('Error cargando unidades', e); }
+}
+
+function unidadStatusPriority({ tasks: list }) {
+  if (list.some(t => t.status === 'inprogress')) return 0;
+  if (list.some(t => t.status === 'todo'))       return 1;
+  return 2;
 }
 
 function renderUnidades(data) {
@@ -477,7 +488,14 @@ function renderUnidades(data) {
     return;
   }
 
-  data.forEach(({ unidad, tasks: list }) => {
+  // Sort: inprogress units first, then todo, then done-only
+  const sorted = [...data].sort((a, b) => unidadStatusPriority(a) - unidadStatusPriority(b));
+
+  sorted.forEach(({ unidad, tasks: list }) => {
+    // Apply status filter to the task list
+    const filteredList = unidadesFilter === 'all' ? list : list.filter(t => t.status === unidadesFilter);
+    if (filteredList.length === 0) return; // hide unit if no tasks match filter
+
     const bloque = document.createElement('div');
     bloque.className = 'asignacion-bloque';
     bloque.dataset.unidad = unidad;
@@ -507,7 +525,7 @@ function renderUnidades(data) {
       </tr></thead>`;
 
     const tbody = document.createElement('tbody');
-    list.forEach(t => {
+    filteredList.forEach(t => {
       const tr = document.createElement('tr');
       const subtasks  = t.subtasks || [];
       const completed = subtasks.filter(s => s.completed).length;
@@ -757,6 +775,7 @@ function scrollToCard(taskId) {
 }
 
 async function togglePriority(id, priority) {
+  if (!boardAdminMode) return;
   await apiFetch(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify({ priority: priority ? 1 : 0 }) });
 }
 
@@ -791,6 +810,52 @@ async function unblockSubtask(subtaskId) {
     body: JSON.stringify({ blocked: 0 })
   });
 }
+
+/* ------------------------------------------------------------------
+   Board admin mode (gates priority toggles)
+------------------------------------------------------------------ */
+async function tryBoardAdmin() {
+  const key     = document.getElementById('board-admin-key').value;
+  const errorEl = document.getElementById('board-admin-error');
+  try {
+    await apiFetch('/admin/verify', { method: 'POST', body: JSON.stringify({ key }) });
+    boardAdminMode = true;
+    document.getElementById('board-admin-bar').hidden = true;
+    document.getElementById('board-admin-key').value  = '';
+    errorEl.hidden = true;
+    document.getElementById('btn-board-admin').textContent = '🔓 Admin';
+    document.getElementById('btn-board-admin').classList.add('active');
+    document.querySelector('.board').classList.add('admin-mode');
+  } catch {
+    errorEl.hidden = false;
+    document.getElementById('board-admin-key').select();
+  }
+}
+
+document.getElementById('btn-board-admin').addEventListener('click', () => {
+  if (boardAdminMode) {
+    boardAdminMode = false;
+    document.getElementById('btn-board-admin').textContent = '🔐 Admin';
+    document.getElementById('btn-board-admin').classList.remove('active');
+    document.querySelector('.board').classList.remove('admin-mode');
+    document.getElementById('board-admin-bar').hidden = true;
+  } else {
+    document.getElementById('board-admin-bar').hidden = false;
+    document.getElementById('board-admin-key').focus();
+  }
+});
+document.getElementById('board-admin-confirm').addEventListener('click', tryBoardAdmin);
+document.getElementById('board-admin-key').addEventListener('keydown', e => {
+  if (e.key === 'Enter')  tryBoardAdmin();
+  if (e.key === 'Escape') {
+    document.getElementById('board-admin-bar').hidden = true;
+    document.getElementById('board-admin-error').hidden = true;
+  }
+});
+document.getElementById('board-admin-cancel').addEventListener('click', () => {
+  document.getElementById('board-admin-bar').hidden = true;
+  document.getElementById('board-admin-error').hidden = true;
+});
 
 /* ------------------------------------------------------------------
    Init
@@ -1116,6 +1181,15 @@ document.getElementById('filter-asignaciones').addEventListener('input', () => {
 
 document.getElementById('filter-unidades').addEventListener('input', () => {
   applyFilter('filter-unidades', document.getElementById('unidades-container'), 'unidad');
+});
+
+document.querySelectorAll('.unidad-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    unidadesFilter = btn.dataset.filter;
+    document.querySelectorAll('.unidad-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (unidadesData) renderUnidades(unidadesData);
+  });
 });
 
 document.getElementById('filter-informes').addEventListener('input', () => {

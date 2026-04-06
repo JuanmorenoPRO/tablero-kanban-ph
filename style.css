@@ -970,6 +970,77 @@ h1 {
 .inf-tab.active       { background: var(--black); color: var(--white); }
 .inf-tab:not(.active):hover { background: #f0f0f0; }
 
+.unidades-filter-tabs {
+  display: flex;
+  gap: 4px;
+}
+.unidad-tab {
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 6px 12px;
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  background: var(--white);
+  cursor: pointer;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+.unidad-tab.active       { background: var(--black); color: var(--white); }
+.unidad-tab:not(.active):hover { background: #f0f0f0; }
+
+/* === BOARD ADMIN (priority gate) === */
+.btn-board-admin {
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 900;
+  padding: 9px 14px;
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  background: var(--white);
+  box-shadow: 3px 3px 0 var(--black);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.btn-board-admin:hover  { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--black); }
+.btn-board-admin:active { transform: translate(2px,2px);  box-shadow: 1px 1px 0 var(--black); }
+.btn-board-admin.active { background: var(--black); color: var(--white); }
+
+.board-admin-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0 4px;
+  flex-wrap: wrap;
+}
+.board-admin-bar input[type="password"] {
+  font-family: var(--font);
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 7px 10px;
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  outline: none;
+  width: 200px;
+}
+.board-admin-bar button {
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 7px 14px;
+  border: 2px solid var(--black);
+  border-radius: var(--radius);
+  background: var(--white);
+  cursor: pointer;
+}
+.board-admin-bar button:first-of-type { background: var(--black); color: var(--white); }
+.board-admin-error {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #cc0000;
+}
+
 /* === INFORMES ADMIN === */
 .btn-informes-admin {
   font-family: var(--font);
@@ -1303,6 +1374,10 @@ h1 {
 .cards[data-col="done"] .card-priority:hover {
   box-shadow: 7px 7px 0px #CC3333;
 }
+
+/* Priority button: only visible in admin mode */
+.btn-priority { display: none; }
+.board.admin-mode .btn-priority { display: inline-flex; }
 
 .btn-priority {
   background: #f5f5f5;

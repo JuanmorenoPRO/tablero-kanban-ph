@@ -30,6 +30,13 @@
       <input type="text" id="task-input" placeholder="Nueva tarea..." maxlength="120" />
       <input type="text" id="unidad-input" placeholder="Unidad residencial..." maxlength="80" />
       <button id="add-btn">+ Agregar</button>
+      <button class="btn-board-admin" id="btn-board-admin">🔐 Admin</button>
+    </div>
+    <div id="board-admin-bar" class="board-admin-bar" hidden>
+      <input type="password" id="board-admin-key" placeholder="Clave admin..." />
+      <button id="board-admin-confirm">Entrar</button>
+      <button id="board-admin-cancel">Cancelar</button>
+      <span id="board-admin-error" class="board-admin-error" hidden>Clave incorrecta</span>
     </div>
     <p id="add-task-error" class="add-task-error" hidden></p>
   </header>
@@ -92,6 +99,12 @@
     </div>
     <div class="section-filter-bar">
       <input type="text" id="filter-unidades" placeholder="🔍 Filtrar por unidad residencial..." />
+      <div class="unidades-filter-tabs" id="unidades-filter-tabs">
+        <button class="unidad-tab active" data-filter="all">Todas</button>
+        <button class="unidad-tab" data-filter="inprogress">En Progreso</button>
+        <button class="unidad-tab" data-filter="todo">Pendiente</button>
+        <button class="unidad-tab" data-filter="done">Completado</button>
+      </div>
       <button class="btn-chart-section" onclick="openUnidadesTimeChart()">📊 Tiempo por unidad</button>
     </div>
     <div id="unidades-container">
