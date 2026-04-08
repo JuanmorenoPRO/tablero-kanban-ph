@@ -313,7 +313,14 @@ function createCardElement(task) {
         chk.checked   = !!sub.completed;
         chk.disabled  = isDone || isBlocked;
         if (!isDone && !isBlocked)
-          chk.addEventListener('change', () => toggleSubtask(task.id, sub.id, chk.checked));
+          chk.addEventListener('change', () => {
+            if (col !== 'inprogress') {
+              alert('Mueve la tarea a "En Progreso" antes de marcar subtareas.');
+              chk.checked = !chk.checked;
+              return;
+            }
+            toggleSubtask(task.id, sub.id, chk.checked);
+          });
 
         const lbl = document.createElement('span');
         lbl.className   = 'subtask-label';
