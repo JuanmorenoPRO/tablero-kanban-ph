@@ -222,7 +222,7 @@ function createCardElement(task) {
   assignConfirm.title       = 'Guardar';
   assignConfirm.addEventListener('click', async () => {
     assignForm.hidden = true;
-    await assignTask(task.id, assignInput.value.trim());
+    await assignTask(task.id, assignInput.value.trim().toUpperCase());
   });
 
   const assignCancel = document.createElement('button');
