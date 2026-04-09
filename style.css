@@ -146,6 +146,21 @@ h1 {
 }
 #unidad-input:focus { box-shadow: 7px 7px 0px var(--black); }
 
+#task-type-select {
+  flex: 0 0 auto;
+  padding: 12px 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  border: var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  box-shadow: var(--shadow);
+  outline: none;
+  cursor: pointer;
+  transition: box-shadow 0.1s;
+}
+#task-type-select:focus { box-shadow: 7px 7px 0px var(--black); }
+
 #add-btn {
   padding: 12px 22px;
   font-size: 1rem;

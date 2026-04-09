@@ -1,5 +1,51 @@
 const COLUMNS   = ['todo', 'inprogress', 'done'];
 const COL_LABEL = { todo: 'Pendiente', inprogress: 'En Progreso', done: 'Completado' };
+
+const TASK_TYPE_SUBTASKS = {
+  CAUSACIONES: [
+    'ORGANIZAR PAPELERIA',
+    'REVISAR CORREOS',
+    'REVISAR WHATSAP',
+    'DIGITAR GASTOS',
+    'REVISAR GASTOS FIJOS',
+    'FALTANTES',
+    'CUADRO RETENCION',
+  ],
+  EGRESOS: [
+    'VALIDAR TRANSACCION',
+    'REVISAR CORREOS',
+    'REVISAR WHATSAP',
+    'SUMAR GTOS BANCARIOS',
+    'CONCILIAR SALIDAS',
+    'IMPRIMIR EGRESOS',
+    'ALIMENTAR FALTANTES',
+    'REVISAR AUX 2335',
+  ],
+  TERMINACION: [
+    'CONCILIAR INGRESOS',
+    'REVISAR CORREOS',
+    'REVISAR WHATSAP',
+    'CONCILIACION BANCARIA',
+    'CONCILIACION CARTERA',
+    'CRUCE ANTICIPOS',
+    'CRUCE ND Y NC',
+    'REVISAR CARPETA',
+    'AJUSTE A MILES',
+    'ANEXOS',
+    'REVISAR FALTANTES',
+    'REVISAR AUX COMPLETO',
+  ],
+  FACTURACION: [
+    'CONCILIAR INGRESOS',
+    'SUBIR PAGOS',
+    'REVISAR CORREOS',
+    'REVISAR WHATSAP',
+    'REGISTRAR NOVEDADES',
+    'IMPRIMIR',
+    'PUBLICAR',
+    'ENVIAR POR CORREO',
+  ],
+};
 let tasks = [];
 let boardAdminMode = false;
 let unidadesFilter = 'all'; // 'all' | 'inprogress' | 'todo' | 'done'
@@ -665,8 +711,9 @@ function showAddError(msg) {
 }
 
 async function addTask() {
-  const taskInput   = document.getElementById('task-input');
-  const unidadInput = document.getElementById('unidad-input');
+  const taskInput      = document.getElementById('task-input');
+  const unidadInput    = document.getElementById('unidad-input');
+  const taskTypeSelect = document.getElementById('task-type-select');
   const title = taskInput.value.trim();
   if (!title) return;
   const unidad_residencial = unidadInput.value.trim();
@@ -686,14 +733,23 @@ async function addTask() {
     return;
   }
 
+  const taskType = taskTypeSelect.value;
+
   document.getElementById('add-task-error').hidden = true;
-  taskInput.value   = '';
-  unidadInput.value = '';
+  taskInput.value        = '';
+  unidadInput.value      = '';
+  taskTypeSelect.value   = '';
   taskInput.focus();
-  await apiFetch('/tasks', {
+
+  const newTask = await apiFetch('/tasks', {
     method: 'POST',
     body: JSON.stringify({ title, status: 'todo', unidad_residencial })
   });
+
+  const defaultSubs = TASK_TYPE_SUBTASKS[taskType] || [];
+  for (const subTitle of defaultSubs) {
+    await addSubtask(newTask.id, subTitle);
+  }
 }
 
 async function moveTask(id, direction) {
@@ -1679,3 +1735,14 @@ socket.on('refresh', () => {
 
 fetchAll();
 fetchInformes();
+
+// Populate task-type dropdown from TASK_TYPE_SUBTASKS
+(function populateTaskTypeSelect() {
+  const select = document.getElementById('task-type-select');
+  Object.keys(TASK_TYPE_SUBTASKS).forEach(type => {
+    const opt = document.createElement('option');
+    opt.value       = type;
+    opt.textContent = type.charAt(0) + type.slice(1).toLowerCase();
+    select.appendChild(opt);
+  });
+})();
