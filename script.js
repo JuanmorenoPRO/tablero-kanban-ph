@@ -1183,12 +1183,14 @@ function renderInformes(data) {
     return;
   }
 
-  const visible = data.filter(inf => {
-    if (informesFilter === 'done'    && !inf.completed) return false;
-    if (informesFilter === 'pending' &&  inf.completed) return false;
-    if (filterQ && !inf.title.toLowerCase().includes(filterQ)) return false;
-    return true;
-  });
+  const visible = data
+    .filter(inf => {
+      if (informesFilter === 'done'    && !inf.completed) return false;
+      if (informesFilter === 'pending' &&  inf.completed) return false;
+      if (filterQ && !inf.title.toLowerCase().includes(filterQ)) return false;
+      return true;
+    })
+    .sort((a, b) => b.completed - a.completed);
 
   if (visible.length === 0) {
     container.innerHTML = '<p class="empty-message">Sin resultados.</p>';
