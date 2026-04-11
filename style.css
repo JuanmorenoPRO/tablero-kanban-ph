@@ -922,7 +922,9 @@ h1 {
   box-shadow: 3px 3px 0 var(--black);
 }
 .informe-done {
-  background: #efffef;
+  background: #22c55e;
+  border-color: #008000;
+  box-shadow: 3px 3px 0 #008000;
 }
 .informe-checkbox {
   width: 20px;
@@ -938,7 +940,7 @@ h1 {
 }
 .informe-done .informe-title {
   text-decoration: line-through;
-  color: #666;
+  color: #ffffff;
 }
 .informe-meta {
   font-size: 0.75rem;
