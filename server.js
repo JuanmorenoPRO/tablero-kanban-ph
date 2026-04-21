@@ -60,6 +60,7 @@ async function initSchema() {
       completed  INTEGER NOT NULL DEFAULT 1,
       created_at BIGINT  NOT NULL DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT * 1000)
     );
+    ALTER TABLE informes ADD COLUMN IF NOT EXISTS completed_at BIGINT DEFAULT NULL;
   `);
   console.log('Schema ready');
 }
@@ -294,9 +295,11 @@ app.patch('/informes/:id/toggle', async (req, res) => {
   try {
     const row = await queryOne('SELECT * FROM informes WHERE id = $1', [req.params.id]);
     if (!row) return res.status(404).json({ error: 'No encontrado' });
+    const nowCompleted = row.completed ? 0 : 1;
+    const completedAt  = nowCompleted ? Date.now() : null;
     await pool.query(
-      'UPDATE informes SET completed = $1 WHERE id = $2',
-      [row.completed ? 0 : 1, req.params.id]
+      'UPDATE informes SET completed = $1, completed_at = $2 WHERE id = $3',
+      [nowCompleted, completedAt, req.params.id]
     );
     res.json({ success: true });
     io.emit('refresh');
@@ -308,7 +311,7 @@ app.post('/informes/reset-all', async (req, res) => {
   try {
     const { key } = req.body;
     if (key !== ADMIN_KEY) return res.status(401).json({ error: 'Clave incorrecta' });
-    await pool.query('UPDATE informes SET completed = 0');
+    await pool.query('UPDATE informes SET completed = 0, completed_at = NULL');
     io.emit('refresh');
     res.json({ ok: true });
   } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }); }

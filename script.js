@@ -1218,7 +1218,8 @@ function renderInformes(data) {
 
     const meta = document.createElement('span');
     meta.className   = 'informe-meta';
-    const d = new Date(inf.created_at);
+    const dateTs = inf.completed && inf.completed_at ? inf.completed_at : inf.created_at;
+    const d = new Date(dateTs);
     meta.textContent = d.toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
 
     item.appendChild(checkbox);
